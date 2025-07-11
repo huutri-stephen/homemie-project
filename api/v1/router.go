@@ -6,18 +6,13 @@ import (
 
     "mihome/api/v1/auth"
     "mihome/api/v1/listing"
+    "mihome/api/v1/booking"
 
     "mihome/config"
 )
 
 func NewRouter(db *gorm.DB, cfg config.Config) *gin.Engine {
     r := gin.Default()
-
-    // Public routes
-    r.GET("/ping", func(c *gin.Context) {
-        c.JSON(200, gin.H{"message": "pong"})
-    })
-
     api := r.Group("/api/v1")
 
     // Auth routes (public)
@@ -28,6 +23,7 @@ func NewRouter(db *gorm.DB, cfg config.Config) *gin.Engine {
     protected.Use(auth.RequireAuth())
 
     listing.RegisterListingRoutes(protected, db)
+    booking.RegisterBookingRoutes(protected, db)
 
     return r
 }

@@ -55,10 +55,12 @@ func SeedData(db *gorm.DB) {
     booking := models.Booking{
         UserID:    users[1].ID,
         ListingID: listing.ID,
-        Schedule:  time.Now().Add(48 * time.Hour),
+        StartDate: time.Now().Add(48 * time.Hour),
+        EndDate:   time.Now().Add(72 * time.Hour),
         Status:    "pending",
     }
     db.Create(&booking)
+
 
     // 6. Tin nhắn
     msg := models.Message{
