@@ -1,9 +1,10 @@
 package main
 
 import (
-    "mihome/api/v1"
     "mihome/config"
-    "mihome/infra"
+
+    "mihome/internal"
+    "mihome/internal/infra"
 )
 
 func main() {
@@ -12,6 +13,6 @@ func main() {
 
 	infra.SeedData(db)
 
-    r := v1.NewRouter(db, cfg)
+    r := internal.NewRouter(db, cfg)
     r.Run(":" + cfg.Server.Port)
 }

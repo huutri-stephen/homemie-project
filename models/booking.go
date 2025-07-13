@@ -1,9 +1,16 @@
 package models
 
-import (
-    "time"
-
+import 
+(
     "gorm.io/gorm"
+    "time"
+)
+
+const (
+    BookingStatusPending   = "pending"
+    BookingStatusApproved  = "approved"
+    BookingStatusRejected  = "rejected"
+    BookingStatusCancelled = "cancelled"
 )
 
 type Booking struct {
