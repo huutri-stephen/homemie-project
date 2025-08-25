@@ -1,6 +1,6 @@
 package domain
 
-import "mihome/models"
+import "homemie/models"
 
 type ListingRepository interface {
 	Create(listing *models.Listing) error

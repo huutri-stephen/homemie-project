@@ -2,8 +2,8 @@ package service
 
 import (
 	"errors"
-	"mihome/internal/domain"
-	"mihome/models"
+	"homemie/internal/domain"
+	"homemie/models"
 )
 
 type ListingService struct {

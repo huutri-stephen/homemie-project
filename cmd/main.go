@@ -1,18 +1,18 @@
 package main
 
 import (
-    "mihome/config"
+	"homemie/config"
 
-    "mihome/internal"
-    "mihome/internal/infra"
+	"homemie/internal"
+	"homemie/internal/infra"
 )
 
 func main() {
-    cfg := config.LoadConfig()
-    db := infra.InitDB(cfg)
+	cfg := config.LoadConfig()
+	db := infra.InitDB(cfg)
 
 	infra.SeedData(db)
 
-    r := internal.NewRouter(db, cfg)
-    r.Run(":" + cfg.Server.Port)
+	r := internal.NewRouter(db, cfg)
+	r.Run(":" + cfg.Server.Port)
 }

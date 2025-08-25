@@ -2,8 +2,8 @@ package repository
 
 import (
 	"gorm.io/gorm"
-	"mihome/internal/domain"
-	"mihome/models"
+	"homemie/internal/domain"
+	"homemie/models"
 )
 
 type listingRepo struct {

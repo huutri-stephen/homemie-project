@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
-	"mihome/internal/domain"
-	"mihome/models"
-	"mihome/pkg/utils"
+	"homemie/internal/domain"
+	"homemie/models"
+	"homemie/pkg/utils"
 )
 
 type AuthService struct {

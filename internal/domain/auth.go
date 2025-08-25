@@ -1,6 +1,6 @@
 package domain
 
-import "mihome/models"
+import "homemie/models"
 
 type AuthRepository interface {
 	CreateUser(user *models.User) error

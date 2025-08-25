@@ -4,9 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
-	"mihome/internal/handler"
-	"mihome/internal/repository"
-	"mihome/internal/service"
+	"homemie/internal/handler"
+	"homemie/internal/repository"
+	"homemie/internal/service"
 )
 
 // InitAuthRoutes khởi tạo các route cho Auth

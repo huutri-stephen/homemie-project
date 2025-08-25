@@ -1,8 +1,8 @@
 package repository
 
 import (
-	"mihome/internal/domain"
-	"mihome/models"
+	"homemie/internal/domain"
+	"homemie/models"
 
 	"gorm.io/gorm"
 )

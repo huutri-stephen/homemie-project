@@ -1,7 +1,7 @@
 package domain
 
 import (
-    "mihome/models"
+    "homemie/models"
 )
 
 type BookingRepository interface {

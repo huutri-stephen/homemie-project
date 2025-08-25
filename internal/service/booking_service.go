@@ -1,8 +1,8 @@
 package service
 
 import (
-	"mihome/internal/domain"
-	"mihome/models"
+	"homemie/internal/domain"
+	"homemie/models"
 	"time"
 )
 

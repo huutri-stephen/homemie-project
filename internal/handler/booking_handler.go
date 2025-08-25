@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"mihome/internal/service"
+	"homemie/internal/service"
 )
 
 type BookingHandler struct {

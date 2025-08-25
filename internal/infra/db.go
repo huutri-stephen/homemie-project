@@ -3,8 +3,8 @@ package infra
 import (
     "fmt"
     "log"
-    "mihome/config"
-	"mihome/models"
+    "homemie/config"
+	"homemie/models"
 
     "gorm.io/driver/postgres"
     "gorm.io/gorm"

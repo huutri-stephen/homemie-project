@@ -1,4 +1,4 @@
-module mihome
+module homemie
 
 go 1.23
 

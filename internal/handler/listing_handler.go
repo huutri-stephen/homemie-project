@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"mihome/internal/service"
+	"homemie/internal/service"
 )
 
 type ListingHandler struct {

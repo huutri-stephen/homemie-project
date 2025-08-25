@@ -4,10 +4,10 @@ import (
     "github.com/gin-gonic/gin"
     "gorm.io/gorm"
 
-    "mihome/internal/router"
+    "homemie/internal/router"
 
-    "mihome/config"
-    "mihome/pkg/utils"
+    "homemie/config"
+    "homemie/pkg/utils"
 )
 
 func NewRouter(db *gorm.DB, cfg config.Config) *gin.Engine {

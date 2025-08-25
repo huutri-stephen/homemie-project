@@ -1,6 +1,6 @@
 # File: Makefile
 
-APP_NAME = mihome
+APP_NAME = homemie
 ENV_FILE = .env
 
 run:

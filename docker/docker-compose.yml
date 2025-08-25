@@ -13,7 +13,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data  # Gắn volume để lưu dữ liệu vĩnh viễn
     networks:
-      - mihome-net  # Nối vào mạng riêng tên "mihome-net"
+      - homemie-net  # Nối vào mạng riêng tên "homemie-net"
 
   app:  # Service Go backend
     build:
@@ -31,10 +31,10 @@ services:
     depends_on:
       - db  # Đảm bảo container db khởi động trước
     networks:
-      - mihome-net  # Gắn vào cùng mạng với db
+      - homemie-net  # Gắn vào cùng mạng với db
 
 volumes:
   postgres_data:  # Khai báo volume để lưu trữ dữ liệu DB
 
 networks:
-  mihome-net:  # Khai báo mạng riêng dùng cho các service trong hệ thống
+  homemie-net:  # Khai báo mạng riêng dùng cho các service trong hệ thống

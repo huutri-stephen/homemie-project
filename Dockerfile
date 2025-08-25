@@ -19,12 +19,12 @@ COPY . .
 # Copy toàn bộ nội dung thư mục hiện tại vào container tại /app
 # Mang toàn bộ mã nguồn lên container để build và chạy.
 
-RUN go build -o mihome cmd/main.go
-# Biên dịch file cmd/main.go thành file nhị phân tên mihome
+RUN go build -o homemie cmd/main.go
+# Biên dịch file cmd/main.go thành file nhị phân tên homemie
 # Tạo executable để container chạy khi khởi động
 
 EXPOSE 8080
 # Khai báo port 8080 để container expose ra ngoài
 
-CMD [ "./mihome" ]
-# Khi container chạy, nó sẽ thực thi binary ./mihome đã build ở trên
+CMD [ "./homemie" ]
+# Khi container chạy, nó sẽ thực thi binary ./homemie đã build ở trên

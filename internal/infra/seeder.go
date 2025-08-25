@@ -4,7 +4,7 @@ import (
     "log"
     "time"
 
-    "mihome/models"
+    "homemie/models"
     "gorm.io/gorm"
 )
 
