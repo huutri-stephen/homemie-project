@@ -29,4 +29,3 @@ sudo docker compose start
 ---
 
 ## Ghi chú
-- Chạy trong folder ./docker

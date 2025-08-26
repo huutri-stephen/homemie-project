@@ -4,30 +4,35 @@ services:
   db:  # Service PostgreSQL database
     image: postgres:15  # Dùng image postgres phiên bản 15
     restart: always  # Tự động restart nếu container dừng bất ngờ
+    env_file:
+      - .env
     environment:  # Các biến môi trường khi khởi động DB
-      POSTGRES_USER: postgres  # Tên người dùng mặc định
-      POSTGRES_PASSWORD: your_password  # Mật khẩu cho user
-      POSTGRES_DB: rental_db  # Tên database khởi tạo sẵn
+      POSTGRES_USER: ${DB_USER}  # Tên người dùng mặc định
+      POSTGRES_PASSWORD: ${DB_PASSWORD}  # Mật khẩu cho user
+      POSTGRES_DB: ${DB_NAME}  # Tên database khởi tạo sẵn
     ports:
-      - "5432:5432"  # Mở port 5432 (host) → 5432 (container)
+      - "${DB_PORT}:${DB_PORT}"  # Mở port host → 5432 (container)
     volumes:
       - postgres_data:/var/lib/postgresql/data  # Gắn volume để lưu dữ liệu vĩnh viễn
+      - ./resource/db/db-schema.sql:/docker-entrypoint-initdb.d/db-schema.sql
     networks:
       - homemie-net  # Nối vào mạng riêng tên "homemie-net"
 
   app:  # Service Go backend
     build:
-      context: ..  # Build từ thư mục cha (giả sử Dockerfile nằm trong ./docker/)
+      # context: ./docker/  # Build từ thư mục cha (giả sử Dockerfile nằm trong ./docker/)
       dockerfile: Dockerfile  # Tên file Dockerfile
+    env_file:
+      - .env
     ports:
-      - "8080:8080"  # Mở port 8080 (host) → 8080 (container)
+      - "${APP_PORT}:${APP_PORT}"  # Mở port 8080 (host) → 8080 (container)
     environment:  # Các biến môi trường backend cần để chạy
-      DB_HOST: db  # Hostname của service db (Docker DNS sẽ tự nhận)
-      DB_PORT: 5432  # Cổng PostgreSQL
-      DB_USER: postgres  # Username dùng kết nối DB
-      DB_PASSWORD: your_password  # Password kết nối DB
-      DB_NAME: rental_db  # Tên DB cần kết nối
-      JWT_SECRET: mysecret  # Secret key để mã hóa/giải mã JWT token
+      DB_HOST: ${DB_HOST}  # Hostname của service db (Docker DNS sẽ tự nhận)
+      DB_PORT: ${DB_PORT}  # Cổng PostgreSQL
+      DB_USER: ${DB_USER}  # Username dùng kết nối DB
+      DB_PASSWORD: ${DB_PASSWORD}  # Password kết nối DB
+      DB_NAME: ${DB_NAME}  # Tên DB cần kết nối
+      JWT_SECRET: ${JWT_SECRET}  # Secret key để mã hóa/giải mã JWT token
     depends_on:
       - db  # Đảm bảo container db khởi động trước
     networks:

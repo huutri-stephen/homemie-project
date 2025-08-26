@@ -2,12 +2,15 @@
 
 APP_NAME = homemie
 ENV_FILE = .env
+include $(ENV_FILE)
+export $(shell sed 's/=.*//' $(ENV_FILE))
+
 
 run:
 	@echo "Running $(APP_NAME)..."
 	go run cmd/main.go
 
-tidy:
+mod:
 	go mod tidy
 
 lint:
@@ -24,17 +27,20 @@ dev:
 setup-env:
 	@if [ ! -f $(ENV_FILE) ]; then cp .env.example $(ENV_FILE); fi
 
-migrate-up:
-	migrate -path db/migrations -database postgres://$$DB_USER:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_NAME?sslmode=disable up
-
-migrate-down:
-	migrate -path db/migrations -database postgres://$$DB_USER:$$DB_PASSWORD@$$DB_HOST:$$DB_PORT/$$DB_NAME?sslmode=disable down
-
 migrate-create:
 	@read -p "Enter migration name: " name; \
 	migrate create -ext sql -dir db/migrations -seq $$name
 
 test:
 	go test ./...
+
+db-init:
+	@echo "Checking if database '$(DB_NAME)' exists..."
+	@if ! PGPASSWORD=$(DB_PASSWORD) psql -U $(DB_USER) -h $(DB_HOST) -p $(DB_PORT) -tAc "SELECT 1 FROM pg_database WHERE datname='$(DB_NAME)'" | grep -q 1; then \
+		echo "Creating database $(DB_NAME)..."; \
+		PGPASSWORD=$(DB_PASSWORD) createdb -U $(DB_USER) -h $(DB_HOST) -p $(DB_PORT) $(DB_NAME); \
+	else \
+		echo "Database $(DB_NAME) already exists."; \
+	fi
 
 .PHONY: run tidy lint build dev setup-env migrate-up migrate-down migrate-create test
