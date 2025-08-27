@@ -1,7 +1,6 @@
 package utils
 
 import (
-	// "errors"
 	"os"
 	"time"
 
@@ -20,20 +19,37 @@ func getJWTSecret() string {
 }
 
 type JWTClaims struct {
-	UserID uint   `json:"user_id"`
-	Email  string `json:"email"`
-	Role   string `json:"role"`
+	UserID   uint   `json:"user_id"`
+	Email    string `json:"email"`
+	Role     string `json:"role"`
+	UserType string `json:"user_type"`
 	jwt.RegisteredClaims
 }
 
-// Tạo JWT
-func GenerateJWT(user models.User) (string, error) {
+// GenerateTokens creates both access and refresh JWTs
+func GenerateTokens(user models.User) (string, string, error) {
+	accessToken, err := generateAccessToken(user)
+	if err != nil {
+		return "", "", err
+	}
+
+	refreshToken, err := generateRefreshToken(user)
+	if err != nil {
+		return "", "", err
+	}
+
+	return accessToken, refreshToken, nil
+}
+
+// generateAccessToken creates a short-lived access token
+func generateAccessToken(user models.User) (string, error) {
 	claims := JWTClaims{
-		UserID: user.ID,
-		Email:  user.Email,
-		Role:   user.Role,
+		UserID:   user.ID,
+		Email:    user.Email,
+		Role:     user.Role,
+		UserType: user.UserType,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(72 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)), // Access token expires in 15 mins
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
@@ -42,7 +58,22 @@ func GenerateJWT(user models.User) (string, error) {
 	return token.SignedString(jwtSecret)
 }
 
-// Giải mã token
+// generateRefreshToken creates a long-lived refresh token
+func generateRefreshToken(user models.User) (string, error) {
+	claims := JWTClaims{
+		UserID: user.ID,
+		Email:  user.Email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)), // Refresh token expires in 7 days
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(jwtSecret)
+}
+
+// ParseJWT decodes the token
 func ParseJWT(tokenStr string) (*JWTClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return jwtSecret, nil

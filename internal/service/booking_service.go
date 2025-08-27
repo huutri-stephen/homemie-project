@@ -23,11 +23,11 @@ type CreateBookingInput struct {
 
 func (s *BookingService) CreateBooking(input CreateBookingInput) (*models.Booking, error) {
 	booking := &models.Booking{
-		UserID:    input.UserID,
-		ListingID: input.ListingID,
-		StartDate: input.StartDate,
-		EndDate:   input.EndDate,
-		Status:    models.BookingStatusPending,
+		// UserID:    input.UserID,
+		// ListingID: input.ListingID,
+		// StartDate: input.StartDate,
+		// EndDate:   input.EndDate,
+		// Status:    models.BookingStatusPending,
 	}
 	err := s.repo.Create(booking)
 	return booking, err

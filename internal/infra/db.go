@@ -1,13 +1,14 @@
 package infra
 
 import (
-    "fmt"
-    "log"
-    "homemie/config"
+	"fmt"
+	"homemie/config"
 	"homemie/models"
+	"log"
+	"time"
 
-    "gorm.io/driver/postgres"
-    "gorm.io/gorm"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func InitDB(cfg config.Config) *gorm.DB {
@@ -20,7 +21,18 @@ func InitDB(cfg config.Config) *gorm.DB {
         cfg.DB.Port,
     )
 
-    db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+    var db *gorm.DB
+    var err error
+
+    for i := 0; i < 5; i++ { // thử 5 lần
+        db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+        if err == nil {
+            break
+        }
+        log.Printf("Failed to connect DB (attempt %d/5): %v", i+1, err)
+        time.Sleep(10 * time.Second)
+    }
+    
     if err != nil {
         log.Fatalf("Failed to connect to database: %v", err)
     }
@@ -33,7 +45,6 @@ func InitDB(cfg config.Config) *gorm.DB {
         &models.ListingImage{},
         &models.Favorite{},
         &models.Booking{},
-        &models.Message{},
     )
     if err != nil {
         log.Fatalf("AutoMigrate failed: %v", err)

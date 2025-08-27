@@ -28,8 +28,8 @@ func (s *ListingService) Create(input CreateListingInput) (*models.Listing, erro
 		Title:       input.Title,
 		Description: input.Description,
 		Price:       input.Price,
-		Address:     input.Address,
-		City:        input.City,
+		// Address:     input.Address,
+		// City:        input.City,
 		OwnerID:     input.OwnerID,
 	}
 	err := s.repo.Create(listing)
@@ -56,8 +56,8 @@ func (s *ListingService) Update(id uint, userID uint, input CreateListingInput) 
 	listing.Title = input.Title
 	listing.Description = input.Description
 	listing.Price = input.Price
-	listing.Address = input.Address
-	listing.City = input.City
+	// listing.Address = input.Address
+	// listing.City = input.City
 
 	err = s.repo.Update(listing)
 	return listing, err

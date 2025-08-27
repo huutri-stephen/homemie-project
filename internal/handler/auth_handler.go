@@ -16,10 +16,21 @@ func NewAuthHandler(svc *service.AuthService) *AuthHandler {
 }
 
 type SignUpRequest struct {
-	Name     string `json:"name" binding:"required"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
-	Phone    string `json:"phone"`
+	FirstName             string `json:"first_name"`
+	LastName              string `json:"last_name"`
+	Name                  string `json:"name" binding:"required"`
+	Email                 string `json:"email" binding:"required,email"`
+	Password              string `json:"password" binding:"required,min=6"`
+	Phone                 string `json:"phone"`
+	DateOfBirth           string `json:"date_of_birth"`
+	Gender                string `json:"gender"`
+	AvatarURL             string `json:"avatar_url"`
+	Bio                   string `json:"bio"`
+	UserType              string `json:"user_type" binding:"required,oneof=renter owner"`
+	IdentityType          string `json:"identity_type"`
+	CompanyName           string `json:"company_name"`
+	BusinessLicenseNumber string `json:"business_license_number"`
+	AgentLicenseNumber    string `json:"agent_license_number"`
 }
 
 func (h *AuthHandler) SignUp(c *gin.Context) {
@@ -30,10 +41,21 @@ func (h *AuthHandler) SignUp(c *gin.Context) {
 	}
 
 	err := h.svc.SignUp(service.SignUpInput{
-		Name:     req.Name,
-		Email:    req.Email,
-		Password: req.Password,
-		Phone:    req.Phone,
+		FirstName:             req.FirstName,
+		LastName:              req.LastName,
+		Name:                  req.Name,
+		Email:                 req.Email,
+		Password:              req.Password,
+		Phone:                 req.Phone,
+		DateOfBirth:           req.DateOfBirth,
+		Gender:                req.Gender,
+		AvatarURL:             req.AvatarURL,
+		Bio:                   req.Bio,
+		UserType:              req.UserType,
+		IdentityType:          req.IdentityType,
+		CompanyName:           req.CompanyName,
+		BusinessLicenseNumber: req.BusinessLicenseNumber,
+		AgentLicenseNumber:    req.AgentLicenseNumber,
 	})
 
 	if err != nil {
@@ -41,7 +63,13 @@ func (h *AuthHandler) SignUp(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Đăng ký thành công"})
+	// Call method SendVerificationEmail after creating user
+	if err := h.svc.SendVerificationEmail(req.Email); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Registration successful. Please check your email to verify your account."})
 }
 
 type LoginRequest struct {
@@ -56,7 +84,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token, user, err := h.svc.Login(service.LoginInput{
+	accessToken, refreshToken, user, err := h.svc.Login(service.LoginInput{
 		Email:    req.Email,
 		Password: req.Password,
 	})
@@ -66,13 +94,56 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	c.SetCookie("refresh_token", refreshToken, 3600*24*7, "/", "", false, true)
+
 	c.JSON(http.StatusOK, gin.H{
-		"token": token,
+		"access_token": accessToken,
 		"user": gin.H{
-			"id":    user.ID,
-			"name":  user.Name,
-			"email": user.Email,
-			"role":  user.Role,
+			"id":        user.ID,
+			"name":      user.Name,
+			"email":     user.Email,
+			"role":      user.Role,
+			"user_type": user.UserType,
+			"status":    user.Status,
 		},
 	})
+}
+
+type SendVerificationEmailRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+func (h *AuthHandler) SendVerificationEmail(c *gin.Context) {
+	var req SendVerificationEmailRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.svc.SendVerificationEmail(req.Email); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Verification email sent"})
+}
+
+type VerifyEmailRequest struct {
+	Token string `json:"token" binding:"required"`
+	Email string `json:"email" binding:"required,email"`
+}
+
+func (h *AuthHandler) VerifyEmail(c *gin.Context) {
+	var req VerifyEmailRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.svc.VerifyEmail(req.Token, req.Email); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Email verified successfully"})
 }

@@ -2,7 +2,7 @@ package infra
 
 import (
     "log"
-    "time"
+    // "time"
 
     "homemie/models"
     "gorm.io/gorm"
@@ -21,35 +21,52 @@ func SeedData(db *gorm.DB) {
 
     // 1. Tạo users
     users := []models.User{
-        {Name: "Alice", Email: "alice@example.com", Password: "hashed123", Phone: "0912345678", Role: "owner"},
-        {Name: "Bob", Email: "bob@example.com", Password: "hashed123", Phone: "0987654321", Role: "renter"},
-    }
+    {
+        Name:         "Alice",
+        Email:        "alice@example.com",
+        PasswordHash: "hashed123",
+        Phone:        "0912345678",
+        Role:         "owner",
+        Gender:       "female",
+        UserType:     "owner", 
+    },
+    {
+        Name:         "Bob",
+        Email:        "bob@example.com",
+        PasswordHash: "hashed123",
+        Phone:        "0987654321",
+        Role:         "renter",
+        Gender:       "male",
+        UserType:     "renter",
+    },
+}
     db.Create(&users)
 
-    // 2. Tạo listing
-    listing := models.Listing{
-        Title:       "Phòng trọ gần ĐH Bách Khoa",
-        Description: "Phòng sạch sẽ, có máy lạnh, wifi miễn phí",
-        Price:       2_500_000,
-        Address:     "123 Nguyễn Văn Cừ, Quận 5, TP.HCM",
-        City:        "Hồ Chí Minh",
-        OwnerID:     users[0].ID,
-    }
-    db.Create(&listing)
+    // // 2. Tạo listing
+    // listing := models.Listing{
+    //     Title:        "Phòng trọ gần ĐH Bách Khoa",
+    //     Description:  "Phòng sạch sẽ, có máy lạnh, wifi miễn phí",
+    //     Price:        2_500_000,
+    //     Address:      "123 Nguyễn Văn Cừ, Quận 5, TP.HCM",
+    //     City:         "Hồ Chí Minh",
+    //     OwnerID:      users[0].ID,
+    //     PropertyType: "apartment", // 👈 phải set
+    // }
+    // db.Create(&listing)
 
-    // 3. Ảnh bài đăng
-    images := []models.ListingImage{
-        {ListingID: listing.ID, URL: "https://example.com/images/phong1.jpg"},
-        {ListingID: listing.ID, URL: "https://example.com/images/phong2.jpg"},
-    }
-    db.Create(&images)
+    // // 3. Ảnh bài đăng
+    // images := []models.ListingImage{
+    //     {ListingID: listing.ID, ImageURL: "https://example.com/images/phong1.jpg"}, // 👈 dùng đúng cột
+    //     {ListingID: listing.ID, ImageURL: "https://example.com/images/phong2.jpg"},
+    // }
+    // db.Create(&images)
 
-    // 4. Yêu thích
-    fav := models.Favorite{
-        UserID:    users[1].ID,
-        ListingID: listing.ID,
-    }
-    db.Create(&fav)
+    // // 4. Yêu thích
+    // fav := models.Favorite{
+    //     UserID:    users[1].ID,
+    //     ListingID: listing.ID,
+    // }
+    // db.Create(&fav)
 
     // // 5. Booking
     // booking := models.Booking{
@@ -62,14 +79,14 @@ func SeedData(db *gorm.DB) {
     // db.Create(&booking)
 
 
-    // 6. Tin nhắn
-    msg := models.Message{
-        SenderID:   users[1].ID,
-        ReceiverID: users[0].ID,
-        Content:    "Phòng còn trống không ạ?",
-        SentAt:     time.Now(),
-    }
-    db.Create(&msg)
+    //// 6. Tin nhắn
+    // msg := models.Message{
+    //     SenderID:   users[1].ID,
+    //     ReceiverID: users[0].ID,
+    //     Content:    "Phòng còn trống không ạ?",
+    //     SentAt:     time.Now(),
+    // }
+    // db.Create(&msg)
 
     log.Println("✅ Seeded successfully.")
 }

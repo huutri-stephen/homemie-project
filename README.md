@@ -13,7 +13,7 @@ sudo docker compose up --build -d
 
 ### Dừng và xóa container
 ```bash
-sudo docker compose down
+sudo docker compose down -v
 ```
 
 ### Tạm dừng container

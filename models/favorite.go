@@ -1,10 +1,9 @@
 package models
 
-type Favorite struct {
-    ID        uint `gorm:"primaryKey"`
-    UserID    uint `gorm:"not null"`
-    ListingID uint `gorm:"not null"`
+import "time"
 
-    User    User    `gorm:"foreignKey:UserID"`
-    Listing Listing `gorm:"foreignKey:ListingID"`
+type Favorite struct {
+	UserID    uint `gorm:"primaryKey"`
+	ListingID uint `gorm:"primaryKey"`
+	CreatedAt time.Time
 }

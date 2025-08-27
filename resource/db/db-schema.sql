@@ -25,6 +25,7 @@ DROP TYPE IF EXISTS listing_type_enum;
 DROP TYPE IF EXISTS listing_status_enum;
 DROP TYPE IF EXISTS booking_status_enum;
 DROP TYPE IF EXISTS ad_status_enum;
+DROP TYPE IF EXISTS token_type_enum;
 
 -- Create a trigger function to automatically update the updated_at timestamp
 CREATE OR REPLACE FUNCTION trigger_set_timestamp()
@@ -42,11 +43,12 @@ CREATE TYPE user_type_enum AS ENUM('renter', 'owner');
 CREATE TYPE identity_type_enum AS ENUM('personal', 'agent', 'business', 'sublease');
 CREATE TYPE role_enum AS ENUM('user', 'admin', 'moderator');
 CREATE TYPE location_level_enum AS ENUM('city', 'ward', 'area');
-CREATE TYPE property_type_enum AS ENUM('rented_room', 'apartment', 'house', 'villa', 'dormitory', 'office', 'store', 'warehouse', 'land');
+CREATE TYPE property_type_enum AS ENUM('rented_room', 'apartment', 'house', 'villa', 'dormitory', 'office', 'store', 'warehouse', 'land', 'all');
 CREATE TYPE listing_type_enum AS ENUM('for_rent', 'for_sale');
 CREATE TYPE listing_status_enum AS ENUM('active', 'inactive', 'pending', 'rejected', 'deleted');
 CREATE TYPE booking_status_enum AS ENUM('pending', 'accepted', 'rejected', 'cancelled', 'completed');
 CREATE TYPE ad_status_enum AS ENUM('pending', 'active', 'expired', 'cancelled');
+CREATE TYPE token_type_enum AS ENUM('email_verification', 'password_reset');
 
 --
 -- Table structure for table `users`
@@ -56,30 +58,46 @@ CREATE TABLE users (
     first_name             VARCHAR(50),
     last_name              VARCHAR(50),
     name                   VARCHAR(100),
-    email                  VARCHAR(100) UNIQUE NOT NULL,
+    email                  VARCHAR(100) NOT NULL,
     phone                  VARCHAR(20),
     date_of_birth          DATE,
-    gender                 gender_enum,
+    gender                 gender_enum DEFAULT 'other',
     avatar_url             VARCHAR(255),
     bio                    TEXT,
     password_hash          TEXT NOT NULL,
     salt                   VARCHAR(64),
-    status                 user_status_enum DEFAULT 'active',
+    status                 user_status_enum DEFAULT 'inactive',
     email_verified_at      TIMESTAMP,
     last_login_at          TIMESTAMP,
     reset_password_token   VARCHAR(255),
     reset_password_expires_at TIMESTAMP,
-    user_type              user_type_enum NOT NULL,
-    identity_type          identity_type_enum,
+    user_type              user_type_enum DEFAULT 'renter',
+    identity_type          identity_type_enum DEFAULT 'personal',
     company_name           VARCHAR(255),
     business_license_number VARCHAR(100),
     agent_license_number   VARCHAR(100),
     verified_owner         BOOLEAN DEFAULT FALSE,
     role                   role_enum DEFAULT 'user',
     created_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uni_users_email UNIQUE (email)
 );
 CREATE TRIGGER set_timestamp_users BEFORE UPDATE ON users FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
+
+--
+-- Table structure for table `tokens`
+--
+CREATE TABLE tokens (
+    id                      BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id                 BIGINT NOT NULL,
+    token_type              token_type_enum NOT NULL,
+    token                   VARCHAR(255) NOT NULL,
+    expires_at              TIMESTAMP NOT NULL,
+    created_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE TRIGGER set_timestamp_tokens BEFORE UPDATE ON tokens FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
 
 --
 -- Cấu trúc bảng `address_locations`
@@ -123,7 +141,7 @@ CREATE TABLE listings (
     owner_id          BIGINT REFERENCES users(id),
     title             VARCHAR(255) NOT NULL,
     description       TEXT,
-    property_type     property_type_enum NOT NULL,
+    property_type     property_type_enum DEFAULT 'rented_room',
 	is_shared		  BOOLEAN DEFAULT FALSE,
     price             DECIMAL(15,2) NOT NULL,
     area_m2           DECIMAL(10,2),
@@ -250,7 +268,7 @@ CREATE TABLE search_logs (
     num_bedrooms      INT,
     num_bathrooms     INT,
     num_floors        INT,
-    property_type     property_type_enum,
+    property_type     property_type_enum DEFAULT 'all',
     pet_allowed       BOOLEAN,
     has_balcony       BOOLEAN,
     has_parking       BOOLEAN,

@@ -1,8 +1,11 @@
 package service
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"homemie/internal/domain"
@@ -19,10 +22,21 @@ func NewAuthService(repo domain.AuthRepository) *AuthService {
 }
 
 type SignUpInput struct {
-	Name     string
-	Email    string
-	Password string
-	Phone    string
+	FirstName             string
+	LastName              string
+	Name                  string
+	Email                 string
+	Password              string
+	Phone                 string
+	DateOfBirth           string
+	Gender                string
+	AvatarURL             string
+	Bio                   string
+	UserType              string
+	IdentityType          string
+	CompanyName           string
+	BusinessLicenseNumber string
+	AgentLicenseNumber    string
 }
 
 type LoginInput struct {
@@ -36,31 +50,115 @@ func (s *AuthService) SignUp(input SignUpInput) error {
 		return err
 	}
 
+	var dateOfBirth *time.Time
+	if input.DateOfBirth != "" {
+		dob, err := time.Parse("2006-01-02", input.DateOfBirth)
+		if err == nil {
+			dateOfBirth = &dob
+		}
+	}
+
 	user := &models.User{
-		Name:     input.Name,
-		Email:    strings.ToLower(input.Email),
-		Password: string(hashedPassword),
-		Phone:    input.Phone,
-		Role:     "renter",
+		FirstName:             input.FirstName,
+		LastName:              input.LastName,
+		Name:                  input.Name,
+		Email:                 strings.ToLower(input.Email),
+		PasswordHash:          string(hashedPassword),
+		Phone:                 input.Phone,
+		DateOfBirth:           dateOfBirth,
+		Gender:                input.Gender,
+		AvatarURL:             input.AvatarURL,
+		Bio:                   input.Bio,
+		UserType:              input.UserType,
+		IdentityType:          input.IdentityType,
+		CompanyName:           input.CompanyName,
+		BusinessLicenseNumber: input.BusinessLicenseNumber,
+		AgentLicenseNumber:    input.AgentLicenseNumber,
+		Status:                "inactive", // Default status
+		Role:                  "user",
 	}
 
 	return s.repo.CreateUser(user)
 }
 
-func (s *AuthService) Login(input LoginInput) (string, *models.User, error) {
-	user, err := s.repo.GetUserByEmail(strings.ToLower(input.Email))
+func (s *AuthService) Login(input LoginInput) (string, string, *models.User, error) {
+	user, err := s.repo.GetUserByEmail(input.Email)
 	if err != nil {
-		return "", nil, errors.New("tài khoản không tồn tại")
+		return "", "", nil, errors.New("user not found")
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
-		return "", nil, errors.New("mật khẩu không đúng")
+	if user.Status != "active" {
+		return "", "", nil, errors.New("account is not active, please verify your email")
 	}
 
-	token, err := utils.GenerateJWT(*user)
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(input.Password)); err != nil {
+		return "", "", nil, errors.New("invalid credentials")
+	}
+
+	accessToken, refreshToken, err := utils.GenerateTokens(*user)
 	if err != nil {
-		return "", nil, errors.New("không thể tạo token")
+		return "", "", nil, errors.New("could not generate tokens")
 	}
 
-	return token, user, nil
+	return accessToken, refreshToken, user, nil
+}
+
+func (s *AuthService) SendVerificationEmail(email string) error {
+	user, err := s.repo.GetUserByEmail(email)
+	if err != nil {
+		return errors.New("user not found")
+	}
+
+	token, err := generateRandomToken(32)
+	if err != nil {
+		return err
+	}
+
+	t := &models.Token{
+		UserID:    user.ID,
+		TokenType: models.EmailVerification,
+		Token:     token,
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+	}
+
+	if err := s.repo.CreateToken(t); err != nil {
+		return err
+	}
+
+	return utils.SendVerificationEmail(user.Email, token)
+}
+
+func (s *AuthService) VerifyEmail(token string, email string) error {
+	user, err := s.repo.GetUserByEmail(email)
+	if err != nil {
+		return errors.New("user not found")
+	}
+
+	t, err := s.repo.GetToken(token, user.ID, models.EmailVerification)
+	if err != nil {
+		return errors.New("invalid token")
+	}
+
+	if t.ExpiresAt.Before(time.Now()) {
+		return errors.New("token expired")
+	}
+
+	// delete the token after verification
+	if err := s.repo.DeleteToken(t); err != nil {
+		return err
+	}
+
+	now := time.Now()
+	user.Status = "active"
+	user.EmailVerifiedAt = &now
+
+	return s.repo.UpdateUser(user)
+}
+
+func generateRandomToken(length int) (string, error) {
+	bytes := make([]byte, length)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }

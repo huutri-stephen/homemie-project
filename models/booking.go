@@ -1,28 +1,27 @@
 package models
 
-import 
-(
-    "gorm.io/gorm"
-    "time"
+import (
+	"time"
 )
 
 const (
-    BookingStatusPending   = "pending"
-    BookingStatusApproved  = "approved"
-    BookingStatusRejected  = "rejected"
-    BookingStatusCancelled = "cancelled"
+	BookingStatusPending   = "pending"
+	BookingStatusAccepted  = "accepted"
+	BookingStatusRejected  = "rejected"
+	BookingStatusCancelled = "cancelled"
+	BookingStatusCompleted = "completed"
 )
 
 type Booking struct {
-    ID        uint           `gorm:"primaryKey"`
-    UserID    uint           `gorm:"not null"`
-    User      User           `gorm:"foreignKey:UserID"`
-    ListingID uint           `gorm:"not null"`
-    Listing   Listing        `gorm:"foreignKey:ListingID"`
-    StartDate time.Time      `gorm:"not null"`
-    EndDate   time.Time      `gorm:"not null"`
-    Status    string         `gorm:"type:varchar(20);default:'pending'"`
-    CreatedAt time.Time
-    UpdatedAt time.Time
-    DeletedAt gorm.DeletedAt `gorm:"index"`
+	ID                       uint `gorm:"primaryKey"`
+	ListingID                uint `gorm:"not null"`
+	RenterID                 uint `gorm:"not null"`
+	ScheduledTime            time.Time `gorm:"not null"`
+	Status                   string `gorm:"type:booking_status_enum;default:'pending'"`
+	MessageFromRenter        string `gorm:"type:text"`
+	ResponseMessageFromOwner string `gorm:"type:text"`
+	RespondedAt              *time.Time
+	RespondedBy              *uint
+	CreatedAt                time.Time
+	UpdatedAt                time.Time
 }

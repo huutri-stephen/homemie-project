@@ -19,4 +19,6 @@ func InitAuthRoutes(rg *gin.RouterGroup, db *gorm.DB) {
 
 	auth.POST("/signup", h.SignUp)
 	auth.POST("/login", h.Login)
+	auth.POST("/send-verification-email", h.SendVerificationEmail) 
+	auth.POST("/verify-email", h.VerifyEmail)
 }
