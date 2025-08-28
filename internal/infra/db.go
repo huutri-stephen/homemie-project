@@ -40,11 +40,7 @@ func InitDB(cfg config.Config) *gorm.DB {
     log.Println("Database connected successfully")
 
 	err = db.AutoMigrate(
-        &models.User{},
-        &models.Listing{},
-        &models.ListingImage{},
-        &models.Favorite{},
-        &models.Booking{},
+        &models.EmailTemplate{},
     )
     if err != nil {
         log.Fatalf("AutoMigrate failed: %v", err)

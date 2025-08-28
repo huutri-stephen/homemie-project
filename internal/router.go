@@ -12,9 +12,9 @@ import (
 
 func NewRouter(db *gorm.DB, cfg config.Config) *gin.Engine {
     r := gin.Default()
-    api := r.Group("/api/v1")
+    api := r.Group(cfg.Server.ApiVersion)
 
-    router.InitAuthRoutes(api, db) 
+    router.InitAuthRoutes(api, db, cfg) 
 
     // Protected routes (require JWT)
     protected := api.Group("/")

@@ -128,19 +128,16 @@ func (h *AuthHandler) SendVerificationEmail(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Verification email sent"})
 }
 
-type VerifyEmailRequest struct {
-	Token string `json:"token" binding:"required"`
-	Email string `json:"email" binding:"required,email"`
-}
-
 func (h *AuthHandler) VerifyEmail(c *gin.Context) {
-	var req VerifyEmailRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	token := c.Query("token")
+	email := c.Query("email")
+
+	if token == "" || email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "token and email are required"})
 		return
 	}
 
-	if err := h.svc.VerifyEmail(req.Token, req.Email); err != nil {
+	if err := h.svc.VerifyEmail(token, email); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

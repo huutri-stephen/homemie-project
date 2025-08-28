@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
+	"homemie/config"
 	"homemie/internal/domain"
 	"homemie/models"
 	"homemie/pkg/utils"
@@ -15,10 +17,12 @@ import (
 
 type AuthService struct {
 	repo domain.AuthRepository
+	Cfg  config.Config
+	DB   *gorm.DB
 }
 
-func NewAuthService(repo domain.AuthRepository) *AuthService {
-	return &AuthService{repo: repo}
+func NewAuthService(repo domain.AuthRepository, cfg config.Config, db *gorm.DB) *AuthService {
+	return &AuthService{repo: repo, Cfg: cfg, DB: db}
 }
 
 type SignUpInput struct {
@@ -125,7 +129,7 @@ func (s *AuthService) SendVerificationEmail(email string) error {
 		return err
 	}
 
-	return utils.SendVerificationEmail(user.Email, token)
+	return utils.SendVerificationEmail(s.Cfg, s.DB, user.Email, user.Name, token)
 }
 
 func (s *AuthService) VerifyEmail(token string, email string) error {

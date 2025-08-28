@@ -2,6 +2,8 @@
 
 APP_NAME = homemie
 ENV_FILE = .env
+MIGRATIONS_DIR = db/migrations
+URL = postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_URL):$(DB_PORT)/$(DB_NAME)?sslmode=disable
 include $(ENV_FILE)
 export $(shell sed 's/=.*//' $(ENV_FILE))
 
@@ -29,7 +31,16 @@ setup-env:
 
 migrate-create:
 	@read -p "Enter migration name: " name; \
-	migrate create -ext sql -dir db/migrations -seq $$name
+	migrate create -ext sql -dir $(MIGRATIONS_DIR) -seq $$name
+
+migrate-up:
+	migrate -path $(MIGRATIONS_DIR) -database "$(URL)" up
+
+migrate-down:
+	migrate -path $(MIGRATIONS_DIR) -database "$(URL)" down
+
+migrate-version:
+	migrate -path $(MIGRATIONS_DIR) -database "$(URL)" version
 
 test:
 	go test ./...

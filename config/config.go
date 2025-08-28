@@ -10,6 +10,8 @@ import (
 type Config struct {
 	Server struct {
 		Port string
+		Host string
+		ApiVersion string
 	}
 	DB struct {
 		Host     string
@@ -17,6 +19,13 @@ type Config struct {
 		User     string
 		Password string
 		Name     string
+	}
+	Email struct {
+		SmtpHost    string
+		SmtpPort    string
+		SmtpUser    string
+		SmtpPass    string
+		SenderEmail string
 	}
 }
 
@@ -27,13 +36,21 @@ func LoadConfig() Config {
 	}
 
 	cfg := Config{}
-	cfg.Server.Port = getEnv("PORT", "8080")
+	cfg.Server.Host = getEnv("APP_HOST", "localhost")
+	cfg.Server.Port = getEnv("APP_PORT", "8080")
+	cfg.Server.ApiVersion = getEnv("API_VERSION", "/api/v1")
 
 	cfg.DB.Host = getEnv("DB_HOST", "localhost")
 	cfg.DB.Port = getEnv("DB_PORT", "5432")
 	cfg.DB.User = getEnv("DB_USER", "postgres")
 	cfg.DB.Password = getEnv("DB_PASSWORD", "password")
 	cfg.DB.Name = getEnv("DB_NAME", "homemie")
+
+	cfg.Email.SmtpHost = getEnv("SMTP_HOST", "smtp.gmail.com")
+	cfg.Email.SmtpPort = getEnv("SMTP_PORT", "587")
+	cfg.Email.SmtpUser = getEnv("SMTP_USER", "noreply.homemie@gmail.com")
+	cfg.Email.SmtpPass = getEnv("SMTP_PASSWORD", "your_smtp_password")
+	cfg.Email.SenderEmail = getEnv("SMTP_SENDER", "noreply.homemie@gmail.com")
 
 	return cfg
 }
