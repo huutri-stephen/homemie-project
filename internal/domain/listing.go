@@ -1,6 +1,10 @@
 package domain
 
-import "homemie/models"
+import (
+	"homemie/models"
+
+	"gorm.io/gorm"
+)
 
 type ListingRepository interface {
 	Create(listing *models.Listing) error
@@ -8,4 +12,5 @@ type ListingRepository interface {
 	FindByID(id uint) (*models.Listing, error)
 	Update(listing *models.Listing) error
 	Delete(listing *models.Listing) error
+	DB() *gorm.DB
 }

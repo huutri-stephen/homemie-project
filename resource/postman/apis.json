@@ -1,0 +1,382 @@
+{
+	"info": {
+		"_postman_id": "871fe9ed-aac5-411c-a93c-bfad829bb780",
+		"name": "MIHOME",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "41393318",
+		"_collection_link": "https://mihome-3677.postman.co/workspace/mihome~cd264af0-f800-438d-8e97-a7f0f6f1852c/collection/41393318-871fe9ed-aac5-411c-a93c-bfad829bb780?action=share&source=collection_link&creator=41393318"
+	},
+	"item": [
+		{
+			"name": "AUTH",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let json = pm.response.json();\r",
+									"\r",
+									"if (json.access_token) {\r",
+									"    pm.environment.set(\"auth-token\", json.access_token);\r",
+									"} else {\r",
+									"    console.warn(\"Token not found in response.\");\r",
+									"}\r",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "default"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"email\": \"{{root-user}}\",\r\n  \"password\": \"{{root-password}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url-local}}/api/v1/auth/login",
+							"host": [
+								"{{url-local}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Sign up",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"Stephen\",\r\n  \"email\": \"{{root-user}}\",\r\n  \"password\": \"{{root-password}}\",\r\n  \"phone\": \"0987654321\",\r\n  \"user_type\": \"renter\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url-local}}/api/v1/auth/signup",
+							"host": [
+								"{{url-local}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"signup"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify email",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url-local}}/api/v1/auth/verify-email?email={{root-user}}&token=c1109c20a513d217479db91e7c3149689039ca36fba7019192261ec58f442ffc",
+							"host": [
+								"{{url-local}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"verify-email"
+							],
+							"query": [
+								{
+									"key": "email",
+									"value": "{{root-user}}"
+								},
+								{
+									"key": "token",
+									"value": "c1109c20a513d217479db91e7c3149689039ca36fba7019192261ec58f442ffc"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "LISTING",
+			"item": [
+				{
+					"name": "Listings",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{auth-token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth-token}}",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"title\": \"Spacious Apartment with City View\",\r\n  \"description\": \"A beautiful and spacious apartment located in the heart of the city. Perfect for a small family or professionals.\",\r\n  \"property_type\": \"apartment\",\r\n  \"is_shared\": false,\r\n  \"price\": 1500.00,\r\n  \"area_m2\": 120.5,\r\n  \"contact_phone\": \"+1234567890\",\r\n  \"contact_email\": \"johndoe@example.com\",\r\n  \"contact_name\": \"John Doe\",\r\n  \"num_bedrooms\": 3,\r\n  \"num_bathrooms\": 2,\r\n  \"num_floors\": 1,\r\n  \"has_balcony\": true,\r\n  \"has_parking\": true,\r\n  \"amenities\": [\r\n    \"swimming_pool\",\r\n    \"gym\",\r\n    \"security_24h\"\r\n  ],\r\n  \"pet_allowed\": true,\r\n  \"allowed_pet_types\": [\r\n    \"cat\",\r\n    \"dog\"\r\n  ],\r\n  \"latitude\": 34.052235,\r\n  \"longitude\": -118.243683,\r\n  \"listing_type\": \"for_rent\",\r\n  \"deposit_amount\": 3000.00,\r\n  \"address\": {\r\n    \"city_id\": 1,\r\n    \"ward_id\": 2,\r\n    // \"area_id\": null,\r\n    \"street\": \"Main Street\",\r\n    \"house_number\": \"123A\",\r\n    \"building_name\": \"The Grand Plaza\",\r\n    \"floor_number\": 15,\r\n    \"room_number\": \"1502\"\r\n  },\r\n  \"images\": [\r\n    {\r\n      \"url\": \"https://picsum.photos/200\",\r\n      \"caption\": \"Living Room\",\r\n      \"is_cover\": true\r\n    },\r\n    {\r\n      \"url\": \"https://picsum.photos/200\",\r\n      \"caption\": \"Bedroom\"\r\n    },\r\n    {\r\n      \"url\": \"https://picsum.photos/200\",\r\n      \"caption\": \"Kitchen\"\r\n    }\r\n  ]\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url-local}}/api/v1/listings",
+							"host": [
+								"{{url-local}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"listings"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Listings",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth-token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{url-local}}/api/v1/listings",
+							"host": [
+								"{{url-local}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"listings"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Listing By Id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth-token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{url-local}}/api/v1/listings/{{mock-id-listing}}",
+							"host": [
+								"{{url-local}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"listings",
+								"{{mock-id-listing}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Listing",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth-token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"title\": \"Căn hộ The Sun Avenue - Cập nhật\",\r\n  \"description\": \"Đã sửa lại thông tin - nội thất mới\",\r\n  \"price\": 11500000,\r\n  \"address\": \"28 Mai Chí Thọ, P. An Phú\",\r\n  \"city\": \"TP.HCM\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url-local}}/api/v1/listings/{{mock-id-listing}}",
+							"host": [
+								"{{url-local}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"listings",
+								"{{mock-id-listing}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Listing",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth-token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{url-local}}/api/v1/listings/{{mock-id-listing}}",
+							"host": [
+								"{{url-local}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"listings",
+								"{{mock-id-listing}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "BOOKING",
+			"item": [
+				{
+					"name": "Create Booking",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth-token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"listing_id\": 1,\r\n    \"start_date\": \"2025-07-15T10:00:00Z\",\r\n    \"end_date\": \"2025-07-17T10:00:00Z\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url-local}}/api/v1/bookings",
+							"host": [
+								"{{url-local}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"bookings"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Booking",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth-token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{url-local}}/api/v1/bookings/my-bookings",
+							"host": [
+								"{{url-local}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"bookings",
+								"my-bookings"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Booking Ower",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth-token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{url-local}}/api/v1/bookings/owner-bookings",
+							"host": [
+								"{{url-local}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"bookings",
+								"owner-bookings"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

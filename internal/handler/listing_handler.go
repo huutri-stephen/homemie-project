@@ -1,11 +1,12 @@
 package handler
 
 import (
+	"homemie/internal/service"
+	"homemie/models"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"homemie/internal/service"
 )
 
 type ListingHandler struct {
@@ -17,11 +18,29 @@ func NewListingHandler(svc *service.ListingService) *ListingHandler {
 }
 
 type CreateListingRequest struct {
-	Title       string  `json:"title" binding:"required"`
-	Description string  `json:"description"`
-	Price       float64 `json:"price" binding:"required"`
-	Address     string  `json:"address"`
-	City        string  `json:"city"`
+	Title           string               `json:"title" binding:"required"`
+	Description     string               `json:"description"`
+	PropertyType    string               `json:"property_type"`
+	IsShared        bool                 `json:"is_shared"`
+	Price           float64              `json:"price" binding:"required"`
+	AreaM2          float64              `json:"area_m2"`
+	ContactPhone    string               `json:"contact_phone"`
+	ContactEmail    string               `json:"contact_email"`
+	ContactName     string               `json:"contact_name"`
+	NumBedrooms     int                  `json:"num_bedrooms"`
+	NumBathrooms    int                  `json:"num_bathrooms"`
+	NumFloors       int                  `json:"num_floors"`
+	HasBalcony      bool                 `json:"has_balcony"`
+	HasParking      bool                 `json:"has_parking"`
+	Amenities       []string             `json:"amenities"`
+	PetAllowed      bool                 `json:"pet_allowed"`
+	AllowedPetTypes []string             `json:"allowed_pet_types"`
+	Latitude        float64              `json:"latitude"`
+	Longitude       float64              `json:"longitude"`
+	ListingType     string               `json:"listing_type"`
+	DepositAmount   float64              `json:"deposit_amount"`
+	Address         models.Address       `json:"address"`
+	Images          []models.ListingImage `json:"images"`
 }
 
 func (h *ListingHandler) Create(c *gin.Context) {
@@ -33,12 +52,30 @@ func (h *ListingHandler) Create(c *gin.Context) {
 
 	userID := c.GetUint("user_id")
 	listing, err := h.svc.Create(service.CreateListingInput{
-		Title:       req.Title,
-		Description: req.Description,
-		Price:       req.Price,
-		Address:     req.Address,
-		City:        req.City,
-		OwnerID:     userID,
+		OwnerID:         userID,
+		Title:           req.Title,
+		Description:     req.Description,
+		PropertyType:    req.PropertyType,
+		IsShared:        req.IsShared,
+		Price:           req.Price,
+		AreaM2:          req.AreaM2,
+		ContactPhone:    req.ContactPhone,
+		ContactEmail:    req.ContactEmail,
+		ContactName:     req.ContactName,
+		NumBedrooms:     req.NumBedrooms,
+		NumBathrooms:    req.NumBathrooms,
+		NumFloors:       req.NumFloors,
+		HasBalcony:      req.HasBalcony,
+		HasParking:      req.HasParking,
+		Amenities:       req.Amenities,
+		PetAllowed:      req.PetAllowed,
+		AllowedPetTypes: req.AllowedPetTypes,
+		Latitude:        req.Latitude,
+		Longitude:       req.Longitude,
+		ListingType:     req.ListingType,
+		DepositAmount:   req.DepositAmount,
+		Address:         req.Address,
+		Images:          req.Images,
 	})
 
 	if err != nil {
@@ -85,8 +122,6 @@ func (h *ListingHandler) Update(c *gin.Context) {
 		Title:       req.Title,
 		Description: req.Description,
 		Price:       req.Price,
-		Address:     req.Address,
-		City:        req.City,
 	})
 	if err != nil {
 		if err.Error() == "unauthorized" {

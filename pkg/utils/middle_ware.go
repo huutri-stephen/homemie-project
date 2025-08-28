@@ -1,10 +1,11 @@
 package utils
 
 import (
-    "net/http"
-    "strings"
+	"fmt"
+	"net/http"
+	"strings"
 
-    "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 )
 
 func RequireAuth() gin.HandlerFunc {
@@ -25,6 +26,7 @@ func RequireAuth() gin.HandlerFunc {
         }
 
         tokenStr := parts[1]
+        fmt.Println("Claims:", tokenStr)
         claims, err := ParseJWT(tokenStr)
         if err != nil {
             c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})

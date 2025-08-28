@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	"github.com/lib/pq"
 )
 
 type Listing struct {
@@ -24,9 +22,9 @@ type Listing struct {
 	NumFloors       int
 	HasBalcony      bool `gorm:"default:false"`
 	HasParking      bool `gorm:"default:false"`
-	Amenities       pq.StringArray `gorm:"type:json"`
-	PetAllowed      bool `gorm:"default:false"`
-	AllowedPetTypes pq.StringArray `gorm:"type:json"`
+	Amenities       string `gorm:"type:json"`
+	PetAllowed      bool   `gorm:"default:false"`
+	AllowedPetTypes string `gorm:"type:json"`
 	Latitude        float64 `gorm:"type:decimal(10,8)"`
 	Longitude       float64 `gorm:"type:decimal(10,8)"`
 	ListingType     string `gorm:"type:listing_type_enum;default:'for_rent'"`

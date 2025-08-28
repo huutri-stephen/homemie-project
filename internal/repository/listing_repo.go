@@ -40,3 +40,7 @@ func (r *listingRepo) Update(listing *models.Listing) error {
 func (r *listingRepo) Delete(listing *models.Listing) error {
 	return r.db.Delete(listing).Error
 }
+
+func (r *listingRepo) DB() *gorm.DB {
+	return r.db
+}

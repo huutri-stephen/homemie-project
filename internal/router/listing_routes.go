@@ -10,8 +10,10 @@ import (
 )
 
 func InitListingRoutes(rg *gin.RouterGroup, db *gorm.DB) {
-	repo := repository.NewListingRepo(db)
-	svc := service.NewListingService(repo)
+	listingRepo := repository.NewListingRepo(db)
+	addressRepo := repository.NewAddressRepository(db)
+	listingImageRepo := repository.NewListingImageRepository(db)
+	svc := service.NewListingService(listingRepo, addressRepo, listingImageRepo)
 	h := handler.NewListingHandler(svc)
 
 	listings := rg.Group("/listings")

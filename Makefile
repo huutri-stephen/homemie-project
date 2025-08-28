@@ -54,4 +54,17 @@ db-init:
 		echo "Database $(DB_NAME) already exists."; \
 	fi
 
+docker-build:
+	docker build -t homemie .
+
+docker-run:
+	docker run -p 8080:8080 homemie
+
+debug:
+	docker run -it --rm -p 40000:40000 \
+		-v $(pwd):/app \
+		homemie \
+		dlv debug --headless --listen=:40000 --api-version=2 --accept-multiclient ./app
+
+
 .PHONY: run tidy lint build dev setup-env migrate-up migrate-down migrate-create test
