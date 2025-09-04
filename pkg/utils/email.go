@@ -26,10 +26,10 @@ func SendVerificationEmail(cfg config.Config, db *gorm.DB, email, name, token st
 	verificationURL := fmt.Sprintf("http://%s:%s%s/verify-email?email=%s&token=%s", cfg.Server.Host, cfg.Server.Port, cfg.Server.ApiVersion, email, token)
 
 	data := struct {
-		Name        string
-		VerifyURL   string
-		SupportEmail string
-		Year        int
+		Name        	string
+		VerifyURL   	string
+		SupportEmail 	string
+		Year        	int
 	}{
 		Name:        name,
 		VerifyURL:   verificationURL,
@@ -48,8 +48,6 @@ func SendVerificationEmail(cfg config.Config, db *gorm.DB, email, name, token st
 	}
 
 	auth := smtp.PlainAuth("", cfg.Email.SmtpUser, cfg.Email.SmtpPass, cfg.Email.SmtpHost)
-	// You can use fmt.Println for debugging or use a proper logger if available
-	fmt.Println(cfg.Email.SmtpUser, cfg.Email.SmtpPass, cfg.Email.SmtpHost)
 	smtpAddr := fmt.Sprintf("%s:%s", cfg.Email.SmtpHost, cfg.Email.SmtpPort)
 	to := []string{email}
 	msg := []byte(

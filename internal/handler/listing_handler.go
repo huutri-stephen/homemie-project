@@ -3,6 +3,7 @@ package handler
 import (
 	"homemie/internal/service"
 	"homemie/models/request"
+	"homemie/models/response"
 	"net/http"
 	"strconv"
 
@@ -20,7 +21,10 @@ func NewListingHandler(svc *service.ListingService) *ListingHandler {
 func (h *ListingHandler) Create(c *gin.Context) {
 	var req request.CreateListingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, response.BaseResponse{
+			Success: false, 
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -53,20 +57,26 @@ func (h *ListingHandler) Create(c *gin.Context) {
 	})
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo bài đăng thất bại"})
+		c.JSON(http.StatusInternalServerError, response.BaseResponse{
+			Success: false, 
+			Error: "Create listing failed",
+		})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"data": listing})
+	c.JSON(http.StatusCreated, response.BaseResponse{Success: true, Data: listing})
 }
 
 func (h *ListingHandler) GetAll(c *gin.Context) {
 	listings, err := h.svc.GetAll()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lỗi lấy danh sách"})
+		c.JSON(http.StatusInternalServerError, response.BaseResponse{
+			Success: false, 
+			Error: "Get list failed",
+		})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": listings})
+	c.JSON(http.StatusOK, response.BaseResponse{Success: true, Data: listings})
 }
 
 func (h *ListingHandler) GetByID(c *gin.Context) {
@@ -75,10 +85,16 @@ func (h *ListingHandler) GetByID(c *gin.Context) {
 
 	listing, err := h.svc.GetByID(int64(id))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Không tìm thấy"})
+		c.JSON(http.StatusNotFound, response.BaseResponse{
+			Success: false, 
+			Error: "Not found",
+		})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": listing})
+	c.JSON(http.StatusOK, response.BaseResponse{
+		Success: true, 
+		Data: listing,
+	})
 }
 
 func (h *ListingHandler) Update(c *gin.Context) {
@@ -88,7 +104,10 @@ func (h *ListingHandler) Update(c *gin.Context) {
 
 	var req request.CreateListingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, response.BaseResponse{
+			Success: false, 
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -100,14 +119,23 @@ func (h *ListingHandler) Update(c *gin.Context) {
 	})
 	if err != nil {
 		if err.Error() == "unauthorized" {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Không có quyền sửa bài đăng này"})
+			c.JSON(http.StatusForbidden, response.BaseResponse{
+				Success: false, 
+				Error: "Unauthorized to edit this listing",
+			})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật thất bại"})
+			c.JSON(http.StatusInternalServerError, response.BaseResponse{
+				Success: false, 
+				Error: "Update failed",
+			})
 		}
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": listing})
+	c.JSON(http.StatusOK, response.BaseResponse{
+		Success: true, 
+		Data: listing,
+	})
 }
 
 func (h *ListingHandler) Delete(c *gin.Context) {
@@ -118,12 +146,21 @@ func (h *ListingHandler) Delete(c *gin.Context) {
 	err := h.svc.Delete(int64(id), userID)
 	if err != nil {
 		if err.Error() == "unauthorized" {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Không có quyền xóa bài đăng này"})
+			c.JSON(http.StatusForbidden, response.BaseResponse{
+				Success: false, 
+				Error: "Unauthorized to delete this listing",
+			})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Xóa thất bại"})
+			c.JSON(http.StatusInternalServerError, response.BaseResponse{
+				Success: false,
+				Error: "Delete failed",
+			})
 		}
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Xóa bài đăng thành công"})
+	c.JSON(http.StatusOK, response.BaseResponse{
+		Success: true, 
+		Message: "Delete listing successfully",
+	})
 }

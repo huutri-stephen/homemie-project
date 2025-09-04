@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"homemie/internal/service"
 	"homemie/models/request"
+	"homemie/models/response"
 )
 
 type AuthHandler struct {
@@ -19,7 +20,10 @@ func NewAuthHandler(svc *service.AuthService) *AuthHandler {
 func (h *AuthHandler) SignUp(c *gin.Context) {
 	var req request.SignUpRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, response.BaseResponse{
+			Success: false, 
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -42,23 +46,35 @@ func (h *AuthHandler) SignUp(c *gin.Context) {
 	})
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, response.BaseResponse{
+			Success: false, 
+			Error: err.Error(),
+		})
 		return
 	}
 
 	// Call method SendVerificationEmail after creating user
 	if err := h.svc.SendVerificationEmail(req.Email); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.BaseResponse{
+			Success: false, 
+			Error: err.Error(),
+		})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Registration successful. Please check your email to verify your account."})
+	c.JSON(http.StatusCreated, response.BaseResponse{
+		Success: true, 
+		Message: "Registration successful. Please check your email to verify your account.",
+	})
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req request.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, response.BaseResponse{
+			Success: false, 
+			Error: err.Error(),
+		})
 		return
 	}
 
@@ -68,42 +84,54 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	})
 
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		c.JSON(http.StatusUnauthorized, response.BaseResponse{
+			Success: false, 
+			Error: err.Error(),
+		})
 		return
 	}
 
 	c.SetCookie("refresh_token", refreshToken, 3600*24*7, "/", "", false, true)
 
-	c.JSON(http.StatusOK, gin.H{
-		"access_token": accessToken,
-		"user": gin.H{
-			"id":        user.ID,
-			"name":      user.Name,
-			"email":     user.Email,
-			"role":      user.Role,
-			"user_type": user.UserType,
-			"status":    user.Status,
+	c.JSON(http.StatusOK, response.BaseResponse{
+		Success: true,
+		Message: "Login successful",
+		Data: response.LoginResponse{
+			AccessToken: accessToken,
+			User: response.UserPayload{
+				ID:       user.ID,
+				Name:     user.Name,
+				Email:    user.Email,
+				Role:     user.Role,
+				UserType: user.UserType,
+				Status:   user.Status,
+			},
 		},
 	})
 }
 
-type SendVerificationEmailRequest struct {
-	Email string `json:"email" binding:"required,email"`
-}
-
 func (h *AuthHandler) SendVerificationEmail(c *gin.Context) {
-	var req SendVerificationEmailRequest
+	var req request.SendVerificationEmailRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, response.BaseResponse{
+			Success: false, 
+			Error: err.Error(),
+		})
 		return
 	}
 
 	if err := h.svc.SendVerificationEmail(req.Email); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, response.BaseResponse{
+			Success: false, 
+			Error: err.Error(),
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Verification email sent"})
+	c.JSON(http.StatusOK, response.BaseResponse{
+		Success: true, 
+		Message: "Verification email sent",
+	})
 }
 
 func (h *AuthHandler) VerifyEmail(c *gin.Context) {
@@ -111,14 +139,23 @@ func (h *AuthHandler) VerifyEmail(c *gin.Context) {
 	email := c.Query("email")
 
 	if token == "" || email == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "token and email are required"})
+		c.JSON(http.StatusBadRequest, response.BaseResponse{
+			Success: false, 
+			Error: "Token and email are required",
+		})
 		return
 	}
 
 	if err := h.svc.VerifyEmail(token, email); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, response.BaseResponse{
+			Success: false, 
+			Error: err.Error(),
+		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Email verified successfully"})
+	c.JSON(http.StatusOK, response.BaseResponse{
+		Success: true, 
+		Message: "Email verified successfully",
+	})
 }

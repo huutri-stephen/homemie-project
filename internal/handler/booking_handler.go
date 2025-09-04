@@ -6,6 +6,7 @@ import (
 	"homemie/internal/service"
 	"homemie/models/dto"
 	"homemie/models/request"
+	"homemie/models/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,43 +22,55 @@ func NewBookingHandler(svc *service.BookingService) *BookingHandler {
 func (h *BookingHandler) CreateBooking(c *gin.Context) {
 	var req request.CreateBookingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, response.BaseResponse{
+			Success: false, 
+			Error: err.Error(),
+		})
 		return
 	}
 	userID := c.GetInt64("user_id")
 
 	booking, err := h.svc.CreateBooking(dto.Booking{
-		RenterID: 	 		userID,
-		ListingID: 			req.ListingID,
-		ScheduledTime:  	req.ScheduledTime,
-		MessageFromRenter: 	req.MessageFromRenter,
-		Status:        		dto.BookingStatusPending,
+		RenterID:          userID,
+		ListingID:         req.ListingID,
+		ScheduledTime:     req.ScheduledTime,
+		MessageFromRenter: req.MessageFromRenter,
+		Status:            dto.BookingStatusPending,
 	})
-	
+
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo booking thất bại"})
+		c.JSON(http.StatusInternalServerError, response.BaseResponse{
+			Success: false, 
+			Error: "Create booking failed",
+		})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"data": booking})
+	c.JSON(http.StatusCreated, response.BaseResponse{Success: true, Data: booking})
 }
 
 func (h *BookingHandler) GetMyBookings(c *gin.Context) {
 	userID := c.GetInt64("user_id")
 	bookings, err := h.svc.GetMyBookings(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Không thể lấy dữ liệu"})
+		c.JSON(http.StatusInternalServerError, response.BaseResponse{
+			Success: false, 
+			Error: "Can not fetch data",
+		})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": bookings})
+	c.JSON(http.StatusOK, response.BaseResponse{Success: true, Data: bookings})
 }
 
 func (h *BookingHandler) GetOwnerBookings(c *gin.Context) {
 	userID := c.GetInt64("user_id")
 	bookings, err := h.svc.GetOwnerBookings(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Không thể lấy dữ liệu"})
+		c.JSON(http.StatusInternalServerError, response.BaseResponse{
+			Success: false, 
+			Error: "Can not fetch data",
+		})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": bookings})
+	c.JSON(http.StatusOK, response.BaseResponse{Success: true, Data: bookings})
 }
