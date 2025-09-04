@@ -4,7 +4,7 @@ import (
     "log"
     // "time"
 
-    "homemie/models"
+    // "homemie/models"
     "gorm.io/gorm"
 )
 
@@ -12,35 +12,35 @@ func SeedData(db *gorm.DB) {
     log.Println("Seeding mock data...")
 
     // Check nếu có user rồi thì không seed lại
-    var count int64
-    db.Model(&models.User{}).Count(&count)
-    if count > 0 {
-        log.Println("Data already exists, skip seeding.")
-        return
-    }
+    // var count int64
+    // db.Model(&models.User{}).Count(&count)
+    // if count > 0 {
+    //     log.Println("Data already exists, skip seeding.")
+    //     return
+    // }
 
     // 1. Tạo users
-    users := []models.User{
-    {
-        Name:         "Alice",
-        Email:        "alice@example.com",
-        PasswordHash: "hashed123",
-        Phone:        "0912345678",
-        Role:         "owner",
-        Gender:       "female",
-        UserType:     "owner", 
-    },
-    {
-        Name:         "Bob",
-        Email:        "bob@example.com",
-        PasswordHash: "hashed123",
-        Phone:        "0987654321",
-        Role:         "renter",
-        Gender:       "male",
-        UserType:     "renter",
-    },
-}
-    db.Create(&users)
+//     users := []models.User{
+//     {
+//         Name:         "Alice",
+//         Email:        "alice@example.com",
+//         PasswordHash: "hashed123",
+//         Phone:        "0912345678",
+//         Role:         "owner",
+//         Gender:       "female",
+//         UserType:     "owner", 
+//     },
+//     {
+//         Name:         "Bob",
+//         Email:        "bob@example.com",
+//         PasswordHash: "hashed123",
+//         Phone:        "0987654321",
+//         Role:         "renter",
+//         Gender:       "male",
+//         UserType:     "renter",
+//     },
+// }
+//     db.Create(&users)
 
     // // 2. Tạo listing
     // listing := models.Listing{

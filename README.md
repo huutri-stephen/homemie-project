@@ -6,6 +6,11 @@
 
 ## Các lệnh Docker Compose
 
+### Run Docker in WSL (without Docker Desktop)
+```bash
+sudo dockerd
+```
+
 ### Build và chạy container
 ```bash
 sudo docker compose up --build -d

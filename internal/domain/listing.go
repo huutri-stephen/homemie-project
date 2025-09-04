@@ -1,16 +1,16 @@
 package domain
 
 import (
-	"homemie/models"
+	"homemie/models/dto"
 
 	"gorm.io/gorm"
 )
 
 type ListingRepository interface {
-	Create(listing *models.Listing) error
-	FindAll() ([]models.Listing, error)
-	FindByID(id uint) (*models.Listing, error)
-	Update(listing *models.Listing) error
-	Delete(listing *models.Listing) error
+	Create(listing *dto.Listing) error
+	FindAll() ([]dto.Listing, error)
+	FindByID(id int64) (*dto.Listing, error)
+	Update(listing *dto.Listing) error
+	Delete(listing *dto.Listing) error
 	DB() *gorm.DB
 }

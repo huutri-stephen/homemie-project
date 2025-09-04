@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"homemie/internal/service"
+	"homemie/models/request"
 )
 
 type AuthHandler struct {
@@ -15,32 +16,14 @@ func NewAuthHandler(svc *service.AuthService) *AuthHandler {
 	return &AuthHandler{svc: svc}
 }
 
-type SignUpRequest struct {
-	FirstName             string `json:"first_name"`
-	LastName              string `json:"last_name"`
-	Name                  string `json:"name" binding:"required"`
-	Email                 string `json:"email" binding:"required,email"`
-	Password              string `json:"password" binding:"required,min=6"`
-	Phone                 string `json:"phone"`
-	DateOfBirth           string `json:"date_of_birth"`
-	Gender                string `json:"gender"`
-	AvatarURL             string `json:"avatar_url"`
-	Bio                   string `json:"bio"`
-	UserType              string `json:"user_type" binding:"required,oneof=renter owner"`
-	IdentityType          string `json:"identity_type"`
-	CompanyName           string `json:"company_name"`
-	BusinessLicenseNumber string `json:"business_license_number"`
-	AgentLicenseNumber    string `json:"agent_license_number"`
-}
-
 func (h *AuthHandler) SignUp(c *gin.Context) {
-	var req SignUpRequest
+	var req request.SignUpRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err := h.svc.SignUp(service.SignUpInput{
+	err := h.svc.SignUp(request.SignUpRequest{
 		FirstName:             req.FirstName,
 		LastName:              req.LastName,
 		Name:                  req.Name,
@@ -72,19 +55,14 @@ func (h *AuthHandler) SignUp(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Registration successful. Please check your email to verify your account."})
 }
 
-type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
-}
-
 func (h *AuthHandler) Login(c *gin.Context) {
-	var req LoginRequest
+	var req request.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	accessToken, refreshToken, user, err := h.svc.Login(service.LoginInput{
+	accessToken, refreshToken, user, err := h.svc.Login(request.LoginRequest{
 		Email:    req.Email,
 		Password: req.Password,
 	})

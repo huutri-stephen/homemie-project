@@ -1,11 +1,11 @@
-package models
+package dto
 
 import (
 	"time"
 )
 
 type User struct {
-	ID                     uint `gorm:"primaryKey"`
+	ID                     int64 `gorm:"primaryKey"`
 	FirstName              string `gorm:"type:varchar(50)"`
 	LastName               string `gorm:"type:varchar(50)"`
 	Name                   string `gorm:"type:varchar(100)"`

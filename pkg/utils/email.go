@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"homemie/config"
-	"homemie/models"
+	"homemie/models/dto"
 
 	"gorm.io/gorm"
 )
 
 func SendVerificationEmail(cfg config.Config, db *gorm.DB, email, name, token string) error {
-	var emailTemplate models.EmailTemplate
+	var emailTemplate dto.EmailTemplate
 	if err := db.Where("name = ?", "VERIFY_EMAIL").First(&emailTemplate).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("verification email template not found")

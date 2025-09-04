@@ -177,7 +177,7 @@ CREATE TRIGGER set_timestamp_listings BEFORE UPDATE ON listings FOR EACH ROW EXE
 CREATE TABLE listing_images (
     id            BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     listing_id    BIGINT NOT NULL,
-    image_url     VARCHAR(255) NOT NULL,
+    image_url     VARCHAR(500) NOT NULL, -- update 255 to 500
     is_main       BOOLEAN DEFAULT FALSE,
     sort_order    INT DEFAULT 0,
     created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

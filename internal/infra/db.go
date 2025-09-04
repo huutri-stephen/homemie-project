@@ -3,7 +3,7 @@ package infra
 import (
 	"fmt"
 	"homemie/config"
-	"homemie/models"
+	"homemie/models/dto"
 	"log"
 	"time"
 
@@ -40,8 +40,9 @@ func InitDB(cfg config.Config) *gorm.DB {
     log.Println("Database connected successfully")
 
 	err = db.AutoMigrate(
-        &models.EmailTemplate{},
+        &dto.EmailTemplate{},
     )
+
     if err != nil {
         log.Fatalf("AutoMigrate failed: %v", err)
     }

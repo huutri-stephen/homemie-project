@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"homemie/models"
+	"homemie/models/dto"
 
 	"gorm.io/gorm"
 )
@@ -14,7 +14,7 @@ func NewAddressRepository(db *gorm.DB) *AddressRepository {
 	return &AddressRepository{db}
 }
 
-func (r *AddressRepository) Create(address *models.Address) (*models.Address, error) {
+func (r *AddressRepository) Create(address *dto.Address) (*dto.Address, error) {
 	if err := r.db.Create(address).Error; err != nil {
 		return nil, err
 	}

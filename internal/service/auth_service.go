@@ -11,7 +11,8 @@ import (
 	"gorm.io/gorm"
 	"homemie/config"
 	"homemie/internal/domain"
-	"homemie/models"
+	"homemie/models/request"
+	"homemie/models/dto"
 	"homemie/pkg/utils"
 )
 
@@ -25,30 +26,7 @@ func NewAuthService(repo domain.AuthRepository, cfg config.Config, db *gorm.DB) 
 	return &AuthService{repo: repo, Cfg: cfg, DB: db}
 }
 
-type SignUpInput struct {
-	FirstName             string
-	LastName              string
-	Name                  string
-	Email                 string
-	Password              string
-	Phone                 string
-	DateOfBirth           string
-	Gender                string
-	AvatarURL             string
-	Bio                   string
-	UserType              string
-	IdentityType          string
-	CompanyName           string
-	BusinessLicenseNumber string
-	AgentLicenseNumber    string
-}
-
-type LoginInput struct {
-	Email    string
-	Password string
-}
-
-func (s *AuthService) SignUp(input SignUpInput) error {
+func (s *AuthService) SignUp(input request.SignUpRequest) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -62,7 +40,7 @@ func (s *AuthService) SignUp(input SignUpInput) error {
 		}
 	}
 
-	user := &models.User{
+	user := &dto.User{
 		FirstName:             input.FirstName,
 		LastName:              input.LastName,
 		Name:                  input.Name,
@@ -85,7 +63,7 @@ func (s *AuthService) SignUp(input SignUpInput) error {
 	return s.repo.CreateUser(user)
 }
 
-func (s *AuthService) Login(input LoginInput) (string, string, *models.User, error) {
+func (s *AuthService) Login(input request.LoginRequest) (string, string, *dto.User, error) {
 	user, err := s.repo.GetUserByEmail(input.Email)
 	if err != nil {
 		return "", "", nil, errors.New("user not found")
@@ -118,9 +96,9 @@ func (s *AuthService) SendVerificationEmail(email string) error {
 		return err
 	}
 
-	t := &models.Token{
+	t := &dto.Token{
 		UserID:    user.ID,
-		TokenType: models.EmailVerification,
+		TokenType: dto.EmailVerification,
 		Token:     token,
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
@@ -138,7 +116,7 @@ func (s *AuthService) VerifyEmail(token string, email string) error {
 		return errors.New("user not found")
 	}
 
-	t, err := s.repo.GetToken(token, user.ID, models.EmailVerification)
+	t, err := s.repo.GetToken(token, user.ID, dto.EmailVerification)
 	if err != nil {
 		return errors.New("invalid token")
 	}

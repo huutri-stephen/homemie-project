@@ -2,7 +2,7 @@ package handler
 
 import (
 	"homemie/internal/service"
-	"homemie/models"
+	"homemie/models/request"
 	"net/http"
 	"strconv"
 
@@ -17,41 +17,15 @@ func NewListingHandler(svc *service.ListingService) *ListingHandler {
 	return &ListingHandler{svc}
 }
 
-type CreateListingRequest struct {
-	Title           string               `json:"title" binding:"required"`
-	Description     string               `json:"description"`
-	PropertyType    string               `json:"property_type"`
-	IsShared        bool                 `json:"is_shared"`
-	Price           float64              `json:"price" binding:"required"`
-	AreaM2          float64              `json:"area_m2"`
-	ContactPhone    string               `json:"contact_phone"`
-	ContactEmail    string               `json:"contact_email"`
-	ContactName     string               `json:"contact_name"`
-	NumBedrooms     int                  `json:"num_bedrooms"`
-	NumBathrooms    int                  `json:"num_bathrooms"`
-	NumFloors       int                  `json:"num_floors"`
-	HasBalcony      bool                 `json:"has_balcony"`
-	HasParking      bool                 `json:"has_parking"`
-	Amenities       []string             `json:"amenities"`
-	PetAllowed      bool                 `json:"pet_allowed"`
-	AllowedPetTypes []string             `json:"allowed_pet_types"`
-	Latitude        float64              `json:"latitude"`
-	Longitude       float64              `json:"longitude"`
-	ListingType     string               `json:"listing_type"`
-	DepositAmount   float64              `json:"deposit_amount"`
-	Address         models.Address       `json:"address"`
-	Images          []models.ListingImage `json:"images"`
-}
-
 func (h *ListingHandler) Create(c *gin.Context) {
-	var req CreateListingRequest
+	var req request.CreateListingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	userID := c.GetUint("user_id")
-	listing, err := h.svc.Create(service.CreateListingInput{
+	userID := c.GetInt64("user_id")
+	listing, err := h.svc.Create(request.CreateListingRequest{
 		OwnerID:         userID,
 		Title:           req.Title,
 		Description:     req.Description,
@@ -99,7 +73,7 @@ func (h *ListingHandler) GetByID(c *gin.Context) {
 	idStr := c.Param("id")
 	id, _ := strconv.Atoi(idStr)
 
-	listing, err := h.svc.GetByID(uint(id))
+	listing, err := h.svc.GetByID(int64(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Không tìm thấy"})
 		return
@@ -110,18 +84,19 @@ func (h *ListingHandler) GetByID(c *gin.Context) {
 func (h *ListingHandler) Update(c *gin.Context) {
 	idStr := c.Param("id")
 	id, _ := strconv.Atoi(idStr)
-	userID := c.GetUint("user_id")
+	userID := c.GetInt64("user_id")
 
-	var req CreateListingRequest
+	var req request.CreateListingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	listing, err := h.svc.Update(uint(id), userID, service.CreateListingInput{
+	listing, err := h.svc.Update(int64(id), userID, request.CreateListingRequest{
 		Title:       req.Title,
 		Description: req.Description,
 		Price:       req.Price,
+		// todo: add more param
 	})
 	if err != nil {
 		if err.Error() == "unauthorized" {
@@ -138,9 +113,9 @@ func (h *ListingHandler) Update(c *gin.Context) {
 func (h *ListingHandler) Delete(c *gin.Context) {
 	idStr := c.Param("id")
 	id, _ := strconv.Atoi(idStr)
-	userID := c.GetUint("user_id")
+	userID := c.GetInt64("user_id")
 
-	err := h.svc.Delete(uint(id), userID)
+	err := h.svc.Delete(int64(id), userID)
 	if err != nil {
 		if err.Error() == "unauthorized" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Không có quyền xóa bài đăng này"})

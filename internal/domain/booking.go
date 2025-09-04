@@ -1,11 +1,11 @@
 package domain
 
 import (
-    "homemie/models"
+    "homemie/models/dto"
 )
 
 type BookingRepository interface {
-	Create(*models.Booking) error
-	FindByUserID(userID uint) ([]models.Booking, error)
-	FindByOwnerID(ownerID uint) ([]models.Booking, error)
+	Create(*dto.Booking) error
+	FindByUserID(userID int64) ([]dto.Booking, error)
+	FindByOwnerID(ownerID int64) ([]dto.Booking, error)
 }

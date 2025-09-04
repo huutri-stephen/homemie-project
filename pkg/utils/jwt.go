@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
-	"homemie/models"
+	"homemie/models/dto"
 )
 
 var jwtSecret = []byte(getJWTSecret())
@@ -19,7 +19,7 @@ func getJWTSecret() string {
 }
 
 type JWTClaims struct {
-	UserID   uint   `json:"user_id"`
+	UserID   int64   `json:"user_id"`
 	Email    string `json:"email"`
 	Role     string `json:"role"`
 	UserType string `json:"user_type"`
@@ -27,7 +27,7 @@ type JWTClaims struct {
 }
 
 // GenerateTokens creates both access and refresh JWTs
-func GenerateTokens(user models.User) (string, string, error) {
+func GenerateTokens(user dto.User) (string, string, error) {
 	accessToken, err := generateAccessToken(user)
 	if err != nil {
 		return "", "", err
@@ -42,7 +42,7 @@ func GenerateTokens(user models.User) (string, string, error) {
 }
 
 // generateAccessToken creates a short-lived access token
-func generateAccessToken(user models.User) (string, error) {
+func generateAccessToken(user dto.User) (string, error) {
 	claims := JWTClaims{
 		UserID:   user.ID,
 		Email:    user.Email,
@@ -59,7 +59,7 @@ func generateAccessToken(user models.User) (string, error) {
 }
 
 // generateRefreshToken creates a long-lived refresh token
-func generateRefreshToken(user models.User) (string, error) {
+func generateRefreshToken(user dto.User) (string, error) {
 	claims := JWTClaims{
 		UserID: user.ID,
 		Email:  user.Email,

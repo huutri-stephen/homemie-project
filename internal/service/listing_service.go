@@ -4,7 +4,8 @@ import (
 	"errors"
 	"homemie/internal/domain"
 	"homemie/internal/repository"
-	"homemie/models"
+	"homemie/models/request"
+	"homemie/models/dto"
 	"homemie/pkg/utils"
 )
 
@@ -18,42 +19,27 @@ func NewListingService(repo domain.ListingRepository, addressRepo *repository.Ad
 	return &ListingService{repo, addressRepo, listingImageRepo}
 }
 
-type CreateListingInput struct {
-	OwnerID         uint
-	Title           string
-	Description     string
-	PropertyType    string
-	IsShared        bool
-	Price           float64
-	AreaM2          float64
-	ContactPhone    string
-	ContactEmail    string
-	ContactName     string
-	NumBedrooms     int
-	NumBathrooms    int
-	NumFloors       int
-	HasBalcony      bool
-	HasParking      bool
-	Amenities       []string
-	PetAllowed      bool
-	AllowedPetTypes []string
-	Latitude        float64
-	Longitude       float64
-	ListingType     string
-	DepositAmount   float64
-	Address         models.Address // todo: change to 
-	Images          []models.ListingImage // todo: change to 
-}
-
-
-func (s *ListingService) Create(input CreateListingInput) (*models.Listing, error) {
-	// Create Address
-	address, err := s.addressRepo.Create(&input.Address)
+func (s *ListingService) Create(input request.CreateListingRequest) (*dto.Listing, error) {
+	
+	// todo: find current addrest if address exist
+	addr := dto.Address{
+		CityID:       input.Address.CityID,
+		WardID:       input.Address.WardID,
+		AreaID:       input.Address.AreaID,
+		Street:       input.Address.Street,
+		HouseNumber:  input.Address.HouseNumber,
+		BuildingName: input.Address.BuildingName,
+		FloorNumber:  input.Address.FloorNumber,
+		RoomNumber:   input.Address.RoomNumber,
+		Latitude:     input.Address.Latitude,
+		Longitude:    input.Address.Longitude,
+	}
+	address, err := s.addressRepo.Create(&addr)
 	if err != nil {
 		return nil, err
 	}
 
-	listing := &models.Listing{
+	listing := &dto.Listing{
 		OwnerID:         input.OwnerID,
 		Title:           input.Title,
 		Description:     input.Description,
@@ -84,10 +70,14 @@ func (s *ListingService) Create(input CreateListingInput) (*models.Listing, erro
 		return nil, err
 	}
 
-	// Create Listing Images
 	for _, image := range input.Images {
-		image.ListingID = listing.ID
-		_, err := s.listingImageRepo.Create(&image)
+		img := dto.ListingImage{
+			ListingID: listing.ID,
+			ImageURL:  image.ImageURL,
+			IsMain:    image.IsMain,
+			SortOrder: image.SortOrder,
+		}
+		_, err := s.listingImageRepo.Create(&img)
 		if err != nil {
 			return nil, err
 		}
@@ -96,15 +86,15 @@ func (s *ListingService) Create(input CreateListingInput) (*models.Listing, erro
 	return listing, err
 }
 
-func (s *ListingService) GetAll() ([]models.Listing, error) {
+func (s *ListingService) GetAll() ([]dto.Listing, error) {
 	return s.repo.FindAll()
 }
 
-func (s *ListingService) GetByID(id uint) (*models.Listing, error) {
+func (s *ListingService) GetByID(id int64) (*dto.Listing, error) {
 	return s.repo.FindByID(id)
 }
 
-func (s *ListingService) Update(id uint, userID uint, input CreateListingInput) (*models.Listing, error) {
+func (s *ListingService) Update(id int64, userID int64, input request.CreateListingRequest) (*dto.Listing, error) {
 	listing, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
@@ -123,7 +113,7 @@ func (s *ListingService) Update(id uint, userID uint, input CreateListingInput) 
 	return listing, err
 }
 
-func (s *ListingService) Delete(id uint, userID uint) error {
+func (s *ListingService) Delete(id int64, userID int64) error {
 	listing, err := s.repo.FindByID(id)
 	if err != nil {
 		return err
