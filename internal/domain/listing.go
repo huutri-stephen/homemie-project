@@ -12,5 +12,6 @@ type ListingRepository interface {
 	FindByID(id int64) (*dto.Listing, error)
 	Update(listing *dto.Listing) error
 	Delete(listing *dto.Listing) error
+	SearchAndFilter(filter *dto.SearchFilterListing) ([]dto.Listing, *dto.Pagination, error)
 	DB() *gorm.DB
 }

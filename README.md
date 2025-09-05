@@ -67,3 +67,12 @@ These features will provide a much more complete and user-friendly experience, w
 
 Would you like me to start implementing any of these features? I can begin with the user profile management, which is a fundamental feature. I will start by creating the necessary files
 and then implementing the endpoints.
+
+
+ALTER TABLE listings
+    ALTER COLUMN amenities TYPE jsonb
+    USING amenities::jsonb;
+
+ALTER TABLE listings
+    ALTER COLUMN allowed_pet_types TYPE jsonb
+    USING allowed_pet_types::jsonb;

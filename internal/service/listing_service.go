@@ -90,6 +90,10 @@ func (s *ListingService) GetAll() ([]dto.Listing, error) {
 	return s.repo.FindAll()
 }
 
+func (s *ListingService) SearchAndFilter(filter *dto.SearchFilterListing) ([]dto.Listing, *dto.Pagination, error) {
+	return s.repo.SearchAndFilter(filter)
+}
+
 func (s *ListingService) GetByID(id int64) (*dto.Listing, error) {
 	return s.repo.FindByID(id)
 }

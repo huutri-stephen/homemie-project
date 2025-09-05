@@ -123,8 +123,8 @@ CREATE TABLE addresses (
     building_name   VARCHAR(100),
     floor_number    INT,
     room_number     VARCHAR(20),
-    latitude        DECIMAL(10,8),
-    longitude       DECIMAL(10,8),
+    latitude        DECIMAL(12,8), -- update 10,8 to 12,8
+    longitude       DECIMAL(12,8), -- update 10,8 to 12,8
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (city_id) REFERENCES address_locations(id),
@@ -157,8 +157,8 @@ CREATE TABLE listings (
     amenities         JSON,
     pet_allowed       BOOLEAN DEFAULT FALSE,
     allowed_pet_types JSON,
-    latitude          DECIMAL(10,8), -- REMOVE IGNORE
-    longitude         DECIMAL(10,8), -- REMOVE IGNORE
+    -- latitude          DECIMAL(10,8), -- REMOVE IGNORE
+    -- longitude         DECIMAL(10,8), -- REMOVE IGNORE
     listing_type      listing_type_enum DEFAULT 'for_rent',
     deposit_amount    DECIMAL(15,2),
     status            listing_status_enum DEFAULT 'pending',

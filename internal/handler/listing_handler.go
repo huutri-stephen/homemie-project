@@ -2,6 +2,7 @@ package handler
 
 import (
 	"homemie/internal/service"
+	"homemie/models/dto"
 	"homemie/models/request"
 	"homemie/models/response"
 	"net/http"
@@ -22,8 +23,8 @@ func (h *ListingHandler) Create(c *gin.Context) {
 	var req request.CreateListingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, response.BaseResponse{
-			Success: false, 
-			Error: err.Error(),
+			Success: false,
+			Error:   err.Error(),
 		})
 		return
 	}
@@ -58,8 +59,8 @@ func (h *ListingHandler) Create(c *gin.Context) {
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.BaseResponse{
-			Success: false, 
-			Error: "Create listing failed",
+			Success: false,
+			Error:   "Create listing failed",
 		})
 		return
 	}
@@ -67,16 +68,28 @@ func (h *ListingHandler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, response.BaseResponse{Success: true, Data: listing})
 }
 
-func (h *ListingHandler) GetAll(c *gin.Context) {
-	listings, err := h.svc.GetAll()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.BaseResponse{
-			Success: false, 
-			Error: "Get list failed",
+func (h *ListingHandler) SearchAndFilter(c *gin.Context) {
+	var filter dto.SearchFilterListing
+	if err := c.ShouldBindQuery(&filter); err != nil {
+		c.JSON(http.StatusBadRequest, response.BaseResponse{
+			Success: false,
+			Error:   err.Error(),
 		})
 		return
 	}
-	c.JSON(http.StatusOK, response.BaseResponse{Success: true, Data: listings})
+
+	listings, pagination, err := h.svc.SearchAndFilter(&filter)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.BaseResponse{
+			Success: false,
+			Error:   "Get list failed",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.BaseResponse{Success: true, Data: gin.H{
+		"listings":   listings,
+		"pagination": pagination,
+	}})
 }
 
 func (h *ListingHandler) GetByID(c *gin.Context) {
@@ -86,14 +99,14 @@ func (h *ListingHandler) GetByID(c *gin.Context) {
 	listing, err := h.svc.GetByID(int64(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, response.BaseResponse{
-			Success: false, 
-			Error: "Not found",
+			Success: false,
+			Error:   "Not found",
 		})
 		return
 	}
 	c.JSON(http.StatusOK, response.BaseResponse{
-		Success: true, 
-		Data: listing,
+		Success: true,
+		Data:    listing,
 	})
 }
 
@@ -105,8 +118,8 @@ func (h *ListingHandler) Update(c *gin.Context) {
 	var req request.CreateListingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, response.BaseResponse{
-			Success: false, 
-			Error: err.Error(),
+			Success: false,
+			Error:   err.Error(),
 		})
 		return
 	}
@@ -120,21 +133,21 @@ func (h *ListingHandler) Update(c *gin.Context) {
 	if err != nil {
 		if err.Error() == "unauthorized" {
 			c.JSON(http.StatusForbidden, response.BaseResponse{
-				Success: false, 
-				Error: "Unauthorized to edit this listing",
+				Success: false,
+				Error:   "Unauthorized to edit this listing",
 			})
 		} else {
 			c.JSON(http.StatusInternalServerError, response.BaseResponse{
-				Success: false, 
-				Error: "Update failed",
+				Success: false,
+				Error:   "Update failed",
 			})
 		}
 		return
 	}
 
 	c.JSON(http.StatusOK, response.BaseResponse{
-		Success: true, 
-		Data: listing,
+		Success: true,
+		Data:    listing,
 	})
 }
 
@@ -147,20 +160,20 @@ func (h *ListingHandler) Delete(c *gin.Context) {
 	if err != nil {
 		if err.Error() == "unauthorized" {
 			c.JSON(http.StatusForbidden, response.BaseResponse{
-				Success: false, 
-				Error: "Unauthorized to delete this listing",
+				Success: false,
+				Error:   "Unauthorized to delete this listing",
 			})
 		} else {
 			c.JSON(http.StatusInternalServerError, response.BaseResponse{
 				Success: false,
-				Error: "Delete failed",
+				Error:   "Delete failed",
 			})
 		}
 		return
 	}
 
 	c.JSON(http.StatusOK, response.BaseResponse{
-		Success: true, 
+		Success: true,
 		Message: "Delete listing successfully",
 	})
 }
