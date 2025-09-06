@@ -11,8 +11,9 @@ import (
 
 // InitBookingRoutes đăng ký các route liên quan đến booking
 func InitBookingRoutes(rg *gin.RouterGroup, db *gorm.DB) {
-	repo := repository.NewBookingRepo(db)
-	svc := service.NewBookingService(repo)
+	bookingRepo := repository.NewBookingRepo(db)
+	listingRepo := repository.NewListingRepo(db)
+	svc := service.NewBookingService(bookingRepo, listingRepo)
 	h := handler.NewBookingHandler(svc)
 
 	bookings := rg.Group("/bookings")
@@ -21,9 +22,7 @@ func InitBookingRoutes(rg *gin.RouterGroup, db *gorm.DB) {
 		bookings.GET("/my-bookings", h.GetMyBookings)
 		bookings.GET("/owner-bookings", h.GetOwnerBookings)
 
-		// Optional: các API mở rộng về sau
-		// bookings.POST("/:id/approve", h.ApproveBooking)
-		// bookings.POST("/:id/reject", h.RejectBooking)
-		// bookings.POST("/:id/cancel", h.CancelBooking)
+		bookings.PUT("/:id/respond", h.RespondToBooking)
+		bookings.PUT("/:id/cancel", h.CancelBooking)
 	}
 }

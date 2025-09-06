@@ -69,10 +69,45 @@ Would you like me to start implementing any of these features? I can begin with 
 and then implementing the endpoints.
 
 
-ALTER TABLE listings
-    ALTER COLUMN amenities TYPE jsonb
-    USING amenities::jsonb;
+Example curl Requests
 
-ALTER TABLE listings
-    ALTER COLUMN allowed_pet_types TYPE jsonb
-    USING allowed_pet_types::jsonb;
+  Below are the curl commands to test the new booking management endpoints. Please replace {AUTH_TOKEN}, {BOOKING_ID}, and other placeholders with actual values from your
+  system.
+
+  1. Approve/Reject Booking (Owner)
+
+  This endpoint is for the property owner to accept or reject a booking request.
+
+  Approve a Booking:
+
+   1 curl -X PUT http://localhost:8080/api/v1/bookings/{BOOKING_ID}/respond \
+   2 -H "Authorization: Bearer {OWNER_AUTH_TOKEN}" \
+   3 -H "Content-Type: application/json" \
+   4 -d '{
+   5     "status": "accepted",
+   6     "response_message_from_owner": "Your booking is confirmed. I look forward to welcoming you."
+   7 }'
+
+  Reject a Booking:
+
+   1 curl -X PUT http://localhost:8080/api/v1/bookings/{BOOKING_ID}/respond \
+   2 -H "Authorization: Bearer {OWNER_AUTH_TOKEN}" \
+   3 -H "Content-Type: application/json" \
+   4 -d '{
+   5     "status": "rejected",
+   6     "response_message_from_owner": "Sorry, the property is not available at the requested time."
+   7 }'
+
+  2. Cancel Booking (Renter or Owner)
+
+  This endpoint can be used by either the renter or the owner to cancel a booking.
+
+  Cancel as Renter:
+
+   1 curl -X PUT http://localhost:8080/api/v1/bookings/{BOOKING_ID}/cancel \
+   2 -H "Authorization: Bearer {RENTER_AUTH_TOKEN}"
+
+  Cancel as Owner:
+
+   1 curl -X PUT http://localhost:8080/api/v1/bookings/{BOOKING_ID}/cancel \
+   2 -H "Authorization: Bearer {OWNER_AUTH_TOKEN}"

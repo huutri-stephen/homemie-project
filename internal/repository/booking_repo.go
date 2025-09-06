@@ -1,9 +1,10 @@
 package repository
 
 import (
-	"gorm.io/gorm"
 	"homemie/internal/domain"
 	"homemie/models/dto"
+
+	"gorm.io/gorm"
 )
 
 type bookingRepo struct {
@@ -20,7 +21,7 @@ func (r *bookingRepo) Create(booking *dto.Booking) error {
 
 func (r *bookingRepo) FindByUserID(userID int64) ([]dto.Booking, error) {
 	var bookings []dto.Booking
-	err := r.db.Preload("Listing").Where("user_id = ?", userID).Find(&bookings).Error
+	err := r.db.Preload("Listing").Where("renter_id = ?", userID).Find(&bookings).Error
 	return bookings, err
 }
 
@@ -32,4 +33,14 @@ func (r *bookingRepo) FindByOwnerID(ownerID int64) ([]dto.Booking, error) {
 		Preload("Listing").
 		Find(&bookings).Error
 	return bookings, err
+}
+
+func (r *bookingRepo) FindByID(id int64) (*dto.Booking, error) {
+	var booking dto.Booking
+	err := r.db.First(&booking, id).Error
+	return &booking, err
+}
+
+func (r *bookingRepo) Update(booking *dto.Booking) error {
+	return r.db.Save(booking).Error
 }

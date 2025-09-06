@@ -24,13 +24,13 @@ func (r *listingRepo) Create(listing *dto.Listing) error {
 
 func (r *listingRepo) FindAll() ([]dto.Listing, error) {
 	var listings []dto.Listing
-	err := r.db.Preload("Owner").Find(&listings).Error
+	err := r.db.Find(&listings).Error
 	return listings, err
 }
 
 func (r *listingRepo) FindByID(id int64) (*dto.Listing, error) {
 	var listing dto.Listing
-	err := r.db.Preload("Owner").First(&listing, id).Error
+	err := r.db.First(&listing, id).Error
 	if err != nil {
 		return nil, err
 	}

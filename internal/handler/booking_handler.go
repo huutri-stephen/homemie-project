@@ -1,12 +1,11 @@
 package handler
 
 import (
-	"net/http"
-
 	"homemie/internal/service"
-	"homemie/models/dto"
 	"homemie/models/request"
 	"homemie/models/response"
+	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,25 +22,19 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 	var req request.CreateBookingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, response.BaseResponse{
-			Success: false, 
-			Error: err.Error(),
+			Success: false,
+			Error:   err.Error(),
 		})
 		return
 	}
 	userID := c.GetInt64("user_id")
 
-	booking, err := h.svc.CreateBooking(dto.Booking{
-		RenterID:          userID,
-		ListingID:         req.ListingID,
-		ScheduledTime:     req.ScheduledTime,
-		MessageFromRenter: req.MessageFromRenter,
-		Status:            dto.BookingStatusPending,
-	})
+	booking, err := h.svc.CreateBooking(userID, req)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.BaseResponse{
-			Success: false, 
-			Error: "Create booking failed",
+			Success: false,
+			Error:   "Create booking failed",
 		})
 		return
 	}
@@ -54,8 +47,8 @@ func (h *BookingHandler) GetMyBookings(c *gin.Context) {
 	bookings, err := h.svc.GetMyBookings(userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.BaseResponse{
-			Success: false, 
-			Error: "Can not fetch data",
+			Success: false,
+			Error:   "Can not fetch data",
 		})
 		return
 	}
@@ -67,10 +60,68 @@ func (h *BookingHandler) GetOwnerBookings(c *gin.Context) {
 	bookings, err := h.svc.GetOwnerBookings(userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.BaseResponse{
-			Success: false, 
-			Error: "Can not fetch data",
+			Success: false,
+			Error:   "Can not fetch data",
 		})
 		return
 	}
 	c.JSON(http.StatusOK, response.BaseResponse{Success: true, Data: bookings})
+}
+
+func (h *BookingHandler) RespondToBooking(c *gin.Context) {
+	bookingID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.BaseResponse{Success: false, Error: "Invalid booking ID"})
+		return
+	}
+
+	var req request.RespondBookingRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.BaseResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	ownerID := c.GetInt64("user_id")
+	booking, err := h.svc.RespondToBooking(bookingID, ownerID, req)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if err.Error() == "unauthorized" {
+			status = http.StatusForbidden
+		} else if err.Error() == "booking not found" {
+			status = http.StatusNotFound
+		} else if err.Error() == "booking cannot be responded to" {
+			status = http.StatusBadRequest
+		}
+		c.JSON(status, response.BaseResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response.BaseResponse{Success: true, Data: booking})
+}
+
+func (h *BookingHandler) CancelBooking(c *gin.Context) {
+	bookingID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.BaseResponse{Success: false, Error: "Invalid booking ID"})
+		return
+	}
+
+	userID := c.GetInt64("user_id")
+	userRole := c.GetString("user_role")
+
+	booking, err := h.svc.CancelBooking(bookingID, userID, userRole)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if err.Error() == "unauthorized" {
+			status = http.StatusForbidden
+		} else if err.Error() == "booking not found" {
+			status = http.StatusNotFound
+		} else if err.Error() == "booking cannot be cancelled" {
+			status = http.StatusBadRequest
+		}
+		c.JSON(status, response.BaseResponse{Success: false, Error: err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response.BaseResponse{Success: true, Data: booking})
 }
