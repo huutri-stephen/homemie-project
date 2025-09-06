@@ -9,19 +9,32 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type ListingHandler struct {
-	svc *service.ListingService
+	svc    *service.ListingService
+	logger *zap.Logger
 }
 
-func NewListingHandler(svc *service.ListingService) *ListingHandler {
-	return &ListingHandler{svc}
+func NewListingHandler(svc *service.ListingService, logger *zap.Logger) *ListingHandler {
+	return &ListingHandler{svc, logger}
+}
+
+func (h *ListingHandler) getLogger(c *gin.Context) *zap.Logger {
+	if logger, exists := c.Get("logger"); exists {
+		if zapLogger, ok := logger.(*zap.Logger); ok {
+			return zapLogger
+		}
+	}
+	return h.logger
 }
 
 func (h *ListingHandler) Create(c *gin.Context) {
+	logger := h.getLogger(c)
 	var req request.CreateListingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Error("Failed to bind create listing request", zap.Error(err))
 		c.JSON(http.StatusBadRequest, response.BaseResponse{
 			Success: false,
 			Error:   err.Error(),
@@ -30,34 +43,13 @@ func (h *ListingHandler) Create(c *gin.Context) {
 	}
 
 	userID := c.GetInt64("user_id")
-	listing, err := h.svc.Create(request.CreateListingRequest{
-		OwnerID:         userID,
-		Title:           req.Title,
-		Description:     req.Description,
-		PropertyType:    req.PropertyType,
-		IsShared:        req.IsShared,
-		Price:           req.Price,
-		AreaM2:          req.AreaM2,
-		ContactPhone:    req.ContactPhone,
-		ContactEmail:    req.ContactEmail,
-		ContactName:     req.ContactName,
-		NumBedrooms:     req.NumBedrooms,
-		NumBathrooms:    req.NumBathrooms,
-		NumFloors:       req.NumFloors,
-		HasBalcony:      req.HasBalcony,
-		HasParking:      req.HasParking,
-		Amenities:       req.Amenities,
-		PetAllowed:      req.PetAllowed,
-		AllowedPetTypes: req.AllowedPetTypes,
-		Latitude:        req.Latitude,
-		Longitude:       req.Longitude,
-		ListingType:     req.ListingType,
-		DepositAmount:   req.DepositAmount,
-		Address:         req.Address,
-		Images:          req.Images,
-	})
+	req.OwnerID = userID
+
+	logger.Info("Processing create listing request")
+	listing, err := h.svc.Create(req)
 
 	if err != nil {
+		logger.Error("Failed to create listing", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, response.BaseResponse{
 			Success: false,
 			Error:   "Create listing failed",
@@ -65,12 +57,15 @@ func (h *ListingHandler) Create(c *gin.Context) {
 		return
 	}
 
+	logger.Info("Successfully created listing", zap.Int64("listing_id", listing.ID))
 	c.JSON(http.StatusCreated, response.BaseResponse{Success: true, Data: listing})
 }
 
 func (h *ListingHandler) SearchAndFilter(c *gin.Context) {
+	logger := h.getLogger(c)
 	var filter dto.SearchFilterListing
 	if err := c.ShouldBindQuery(&filter); err != nil {
+		logger.Error("Failed to bind search and filter query", zap.Error(err))
 		c.JSON(http.StatusBadRequest, response.BaseResponse{
 			Success: false,
 			Error:   err.Error(),
@@ -78,14 +73,18 @@ func (h *ListingHandler) SearchAndFilter(c *gin.Context) {
 		return
 	}
 
+	logger.Info("Processing search and filter request")
 	listings, pagination, err := h.svc.SearchAndFilter(&filter)
 	if err != nil {
+		logger.Error("Failed to search and filter listings", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, response.BaseResponse{
 			Success: false,
 			Error:   "Get list failed",
 		})
 		return
 	}
+
+	logger.Info("Successfully retrieved listings")
 	c.JSON(http.StatusOK, response.BaseResponse{Success: true, Data: gin.H{
 		"listings":   listings,
 		"pagination": pagination,
@@ -93,17 +92,27 @@ func (h *ListingHandler) SearchAndFilter(c *gin.Context) {
 }
 
 func (h *ListingHandler) GetByID(c *gin.Context) {
+	logger := h.getLogger(c)
 	idStr := c.Param("id")
-	id, _ := strconv.Atoi(idStr)
-
-	listing, err := h.svc.GetByID(int64(id))
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
+		logger.Error("Invalid listing ID format", zap.Error(err))
+		c.JSON(http.StatusBadRequest, response.BaseResponse{Success: false, Error: "Invalid ID format"})
+		return
+	}
+
+	logger.Info("Processing get listing by ID request", zap.Int64("id", id))
+	listing, err := h.svc.GetByID(id)
+	if err != nil {
+		logger.Error("Failed to get listing by ID", zap.Error(err), zap.Int64("id", id))
 		c.JSON(http.StatusNotFound, response.BaseResponse{
 			Success: false,
 			Error:   "Not found",
 		})
 		return
 	}
+
+	logger.Info("Successfully retrieved listing by ID", zap.Int64("id", id))
 	c.JSON(http.StatusOK, response.BaseResponse{
 		Success: true,
 		Data:    listing,
@@ -111,12 +120,20 @@ func (h *ListingHandler) GetByID(c *gin.Context) {
 }
 
 func (h *ListingHandler) Update(c *gin.Context) {
+	logger := h.getLogger(c)
 	idStr := c.Param("id")
-	id, _ := strconv.Atoi(idStr)
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		logger.Error("Invalid listing ID format", zap.Error(err))
+		c.JSON(http.StatusBadRequest, response.BaseResponse{Success: false, Error: "Invalid ID format"})
+		return
+	}
+
 	userID := c.GetInt64("user_id")
 
 	var req request.CreateListingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Error("Failed to bind update listing request", zap.Error(err))
 		c.JSON(http.StatusBadRequest, response.BaseResponse{
 			Success: false,
 			Error:   err.Error(),
@@ -124,13 +141,10 @@ func (h *ListingHandler) Update(c *gin.Context) {
 		return
 	}
 
-	listing, err := h.svc.Update(int64(id), userID, request.CreateListingRequest{
-		Title:       req.Title,
-		Description: req.Description,
-		Price:       req.Price,
-		// todo: add more param
-	})
+	logger.Info("Processing update listing request", zap.Int64("id", id))
+	listing, err := h.svc.Update(id, userID, req)
 	if err != nil {
+		logger.Error("Failed to update listing", zap.Error(err), zap.Int64("id", id))
 		if err.Error() == "unauthorized" {
 			c.JSON(http.StatusForbidden, response.BaseResponse{
 				Success: false,
@@ -145,6 +159,7 @@ func (h *ListingHandler) Update(c *gin.Context) {
 		return
 	}
 
+	logger.Info("Successfully updated listing", zap.Int64("id", id))
 	c.JSON(http.StatusOK, response.BaseResponse{
 		Success: true,
 		Data:    listing,
@@ -152,12 +167,21 @@ func (h *ListingHandler) Update(c *gin.Context) {
 }
 
 func (h *ListingHandler) Delete(c *gin.Context) {
+	logger := h.getLogger(c)
 	idStr := c.Param("id")
-	id, _ := strconv.Atoi(idStr)
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		logger.Error("Invalid listing ID format", zap.Error(err))
+		c.JSON(http.StatusBadRequest, response.BaseResponse{Success: false, Error: "Invalid ID format"})
+		return
+	}
+
 	userID := c.GetInt64("user_id")
 
-	err := h.svc.Delete(int64(id), userID)
+	logger.Info("Processing delete listing request", zap.Int64("id", id))
+	err = h.svc.Delete(int64(id), userID)
 	if err != nil {
+		logger.Error("Failed to delete listing", zap.Error(err), zap.Int64("id", id))
 		if err.Error() == "unauthorized" {
 			c.JSON(http.StatusForbidden, response.BaseResponse{
 				Success: false,
@@ -172,6 +196,7 @@ func (h *ListingHandler) Delete(c *gin.Context) {
 		return
 	}
 
+	logger.Info("Successfully deleted listing", zap.Int64("id", id))
 	c.JSON(http.StatusOK, response.BaseResponse{
 		Success: true,
 		Message: "Delete listing successfully",

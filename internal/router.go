@@ -1,28 +1,31 @@
 package internal
 
 import (
-    "github.com/gin-gonic/gin"
-    "gorm.io/gorm"
+	"homemie/config"
+	"homemie/internal/router"
+	"homemie/pkg/utils"
 
-    "homemie/internal/router"
-
-    "homemie/config"
-    "homemie/pkg/utils"
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
-func NewRouter(db *gorm.DB, cfg config.Config) *gin.Engine {
-    r := gin.Default()
-    api := r.Group(cfg.Server.ApiVersion)
+func NewRouter(db *gorm.DB, cfg config.Config, logger *zap.Logger) *gin.Engine {
+	r := gin.New() // Use gin.New() instead of gin.Default() to have more control over middleware
+	r.Use(gin.Recovery()) // Add recovery middleware
+	r.Use(utils.StructuredLogger(logger))
 
-    router.InitAuthRoutes(api, db, cfg)
-    router.InitPublicListingRoutes(api, db)
+	api := r.Group(cfg.Server.ApiVersion)
 
-    // Protected routes (require JWT)
-    protected := api.Group("/")
-    protected.Use(utils.RequireAuth())
+	router.InitAuthRoutes(api, db, cfg, logger)
+	router.InitPublicListingRoutes(api, db, logger)
 
-    router.InitListingRoutes(protected, db)
-    router.InitBookingRoutes(protected, db)
+	// Protected routes (require JWT)
+	protected := api.Group("/")
+	protected.Use(utils.RequireAuth(logger))
 
-    return r
+	router.InitListingRoutes(protected, db, logger)
+	router.InitBookingRoutes(protected, db, logger)
+
+	return r
 }

@@ -5,48 +5,94 @@ import (
 	"homemie/models/dto"
 	"homemie/pkg/utils"
 	"math"
+	"time"
 
 	"github.com/lib/pq"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 type listingRepo struct {
-	db *gorm.DB
+	db     *gorm.DB
+	logger *zap.Logger
 }
 
-func NewListingRepo(db *gorm.DB) domain.ListingRepository {
-	return &listingRepo{db}
+func NewListingRepo(db *gorm.DB, logger *zap.Logger) domain.ListingRepository {
+	return &listingRepo{db, logger}
 }
 
-func (r *listingRepo) Create(listing *dto.Listing) error {
+func (r *listingRepo) Create(listing *dto.Listing) (err error) {
+	defer func(start time.Time) {
+		r.logger.Info("Create listing",
+			zap.String("function", "Create"),
+			zap.Any("params", listing),
+			zap.Duration("duration", time.Since(start)),
+			zap.Error(err),
+		)
+	}(time.Now())
 	return r.db.Create(listing).Error
 }
 
-func (r *listingRepo) FindAll() ([]dto.Listing, error) {
-	var listings []dto.Listing
-	err := r.db.Find(&listings).Error
-	return listings, err
+func (r *listingRepo) FindAll() (listings []dto.Listing, err error) {
+	defer func(start time.Time) {
+		r.logger.Info("Find all listings",
+			zap.String("function", "FindAll"),
+			zap.Duration("duration", time.Since(start)),
+			zap.Error(err),
+		)
+	}(time.Now())
+	err = r.db.Find(&listings).Error
+	return
 }
 
-func (r *listingRepo) FindByID(id int64) (*dto.Listing, error) {
-	var listing dto.Listing
-	err := r.db.First(&listing, id).Error
-	if err != nil {
-		return nil, err
-	}
-	return &listing, nil
+func (r *listingRepo) FindByID(id int64) (listing *dto.Listing, err error) {
+	defer func(start time.Time) {
+		r.logger.Info("Find listing by ID",
+			zap.String("function", "FindByID"),
+			zap.Int64("params", id),
+			zap.Duration("duration", time.Since(start)),
+			zap.Error(err),
+		)
+	}(time.Now())
+	listing = &dto.Listing{}
+	err = r.db.First(listing, id).Error
+	return
 }
 
-func (r *listingRepo) Update(listing *dto.Listing) error {
+func (r *listingRepo) Update(listing *dto.Listing) (err error) {
+	defer func(start time.Time) {
+		r.logger.Info("Update listing",
+			zap.String("function", "Update"),
+			zap.Any("params", listing),
+			zap.Duration("duration", time.Since(start)),
+			zap.Error(err),
+		)
+	}(time.Now())
 	return r.db.Save(listing).Error
 }
 
-func (r *listingRepo) Delete(listing *dto.Listing) error {
+func (r *listingRepo) Delete(listing *dto.Listing) (err error) {
+	defer func(start time.Time) {
+		r.logger.Info("Delete listing",
+			zap.String("function", "Delete"),
+			zap.Any("params", listing),
+			zap.Duration("duration", time.Since(start)),
+			zap.Error(err),
+		)
+	}(time.Now())
 	return r.db.Delete(listing).Error
 }
 
-func (r *listingRepo) SearchAndFilter(filter *dto.SearchFilterListing) ([]dto.Listing, *dto.Pagination, error) {
-	var listings []dto.Listing
+func (r *listingRepo) SearchAndFilter(filter *dto.SearchFilterListing) (listings []dto.Listing, pagination *dto.Pagination, err error) {
+	defer func(start time.Time) {
+		r.logger.Info("Search and filter listings",
+			zap.String("function", "SearchAndFilter"),
+			zap.Any("params", filter),
+			zap.Duration("duration", time.Since(start)),
+			zap.Error(err),
+		)
+	}(time.Now())
+
 	var total int64
 
 	// base query
@@ -124,7 +170,7 @@ func (r *listingRepo) SearchAndFilter(filter *dto.SearchFilterListing) ([]dto.Li
 		db = db.Where("has_parking = ?", *filter.HasParking)
 	}
 	if len(filter.Amenities) > 0 {
-    db = db.Where("amenities @> ?", utils.ConvertStringArrayToJSON(filter.Amenities))
+		db = db.Where("amenities @> ?", utils.ConvertStringArrayToJSON(filter.Amenities))
 	}
 	if len(filter.AllowedPetTypes) > 0 {
 		db = db.Where("allowed_pet_types @> ?", utils.ConvertStringArrayToJSON(filter.AllowedPetTypes))
@@ -149,19 +195,19 @@ func (r *listingRepo) SearchAndFilter(filter *dto.SearchFilterListing) ([]dto.Li
 	offset := (filter.Page - 1) * filter.Limit
 
 	// main query
-	if err := db.Offset(offset).Limit(filter.Limit).Find(&listings).Error; err != nil {
+	if err = db.Offset(offset).Limit(filter.Limit).Find(&listings).Error; err != nil {
 		return nil, nil, err
 	}
 
 	// pagination response
-	pagination := &dto.Pagination{
+	pagination = &dto.Pagination{
 		Page:       filter.Page,
 		Limit:      filter.Limit,
 		Total:      total,
 		TotalPages: int(math.Ceil(float64(total) / float64(filter.Limit))),
 	}
 
-	return listings, pagination, nil
+	return
 }
 
 func (r *listingRepo) DB() *gorm.DB {
