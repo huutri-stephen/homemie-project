@@ -185,7 +185,7 @@
 							}
 						],
 						"url": {
-							"raw": "{{url-local}}/api/v1/listings",
+							"raw": "{{url-local}}/api/v1/listings?keyword=A beautiful and spacious apartment&property_type=apartment&property_type=house&is_shared=false&min_price=1000&max_price=3000&min_area=50&max_area=150&num_bedrooms=3&num_bathrooms=2&num_floors=1&has_balcony=true&has_parking=true&amenities=swimming_pool&amenities=gym&pet_allowed=true&allowed_pet_types=dog&listing_type=for_rent&city_id=1&ward_ids=2&ward_ids=3&radius_km=4&lat=10.848045&lon=106.748490&page=1&limit=20",
 							"host": [
 								"{{url-local}}"
 							],
@@ -193,6 +193,127 @@
 								"api",
 								"v1",
 								"listings"
+							],
+							"query": [
+								{
+									"key": "keyword",
+									"value": "A beautiful and spacious apartment"
+								},
+								{
+									"key": "property_type",
+									"value": "apartment"
+								},
+								{
+									"key": "property_type",
+									"value": "house"
+								},
+								{
+									"key": "is_shared",
+									"value": "false"
+								},
+								{
+									"key": "min_price",
+									"value": "1000"
+								},
+								{
+									"key": "max_price",
+									"value": "3000"
+								},
+								{
+									"key": "min_area",
+									"value": "50"
+								},
+								{
+									"key": "max_area",
+									"value": "150"
+								},
+								{
+									"key": "num_bedrooms",
+									"value": "3"
+								},
+								{
+									"key": "num_bathrooms",
+									"value": "2"
+								},
+								{
+									"key": "num_floors",
+									"value": "1"
+								},
+								{
+									"key": "has_balcony",
+									"value": "true"
+								},
+								{
+									"key": "has_parking",
+									"value": "true"
+								},
+								{
+									"key": "amenities",
+									"value": "swimming_pool"
+								},
+								{
+									"key": "amenities",
+									"value": "gym"
+								},
+								{
+									"key": "pet_allowed",
+									"value": "true"
+								},
+								{
+									"key": "allowed_pet_types",
+									"value": "dog"
+								},
+								{
+									"key": "allowed_pet_types",
+									"value": "cat",
+									"disabled": true
+								},
+								{
+									"key": "listing_type",
+									"value": "for_rent"
+								},
+								{
+									"key": "city_id",
+									"value": "1"
+								},
+								{
+									"key": "ward_ids",
+									"value": "2"
+								},
+								{
+									"key": "ward_ids",
+									"value": "3"
+								},
+								{
+									"key": "area_ids",
+									"value": "201",
+									"disabled": true
+								},
+								{
+									"key": "area_ids",
+									"value": "202",
+									"disabled": true
+								},
+								{
+									"key": "radius_km",
+									"value": "4"
+								},
+								{
+									"key": "lat",
+									"value": "10.848045"
+								},
+								{
+									"key": "lon",
+									"value": "106.748490"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								}
 							]
 						}
 					},

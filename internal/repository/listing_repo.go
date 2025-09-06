@@ -6,6 +6,7 @@ import (
 	"homemie/pkg/utils"
 	"math"
 
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -90,7 +91,7 @@ func (r *listingRepo) SearchAndFilter(filter *dto.SearchFilterListing) ([]dto.Li
 
 	// property filters
 	if len(filter.PropertyType) > 0 {
-		db = db.Where("property_type = ANY(?)", utils.ConvertStringArrayToJSON(filter.PropertyType))
+		db = db.Where("property_type = ANY(?)", pq.Array(filter.PropertyType))
 	}
 	if filter.IsShared != nil {
 		db = db.Where("is_shared = ?", *filter.IsShared)
@@ -123,21 +124,20 @@ func (r *listingRepo) SearchAndFilter(filter *dto.SearchFilterListing) ([]dto.Li
 		db = db.Where("has_parking = ?", *filter.HasParking)
 	}
 	if len(filter.Amenities) > 0 {
-		db = db.Where("amenities @> ?", utils.ConvertStringArrayToJSON(filter.Amenities))
-	}
-	if filter.PetAllowed != nil {
-		db = db.Where("pet_allowed = ?", *filter.PetAllowed)
+    db = db.Where("amenities @> ?", utils.ConvertStringArrayToJSON(filter.Amenities))
 	}
 	if len(filter.AllowedPetTypes) > 0 {
 		db = db.Where("allowed_pet_types @> ?", utils.ConvertStringArrayToJSON(filter.AllowedPetTypes))
+	}
+	if filter.PetAllowed != nil {
+		db = db.Where("pet_allowed = ?", *filter.PetAllowed)
 	}
 	if filter.ListingType != "" {
 		db = db.Where("listing_type = ?", filter.ListingType)
 	}
 
-	// count query (avoid COUNT(listings.*))
 	countDB := db.Session(&gorm.Session{})
-	countDB.Select("1").Count(&total)
+	countDB.Select("*").Count(&total)
 
 	// pagination
 	if filter.Page == 0 {

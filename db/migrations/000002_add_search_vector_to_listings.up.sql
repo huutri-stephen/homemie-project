@@ -1,11 +1,23 @@
--- Drop index
-DROP INDEX IF EXISTS idx_listings_search_vector;
+-- Add search_vector column
+ALTER TABLE listings ADD COLUMN search_vector tsvector;
 
--- Drop trigger
-DROP TRIGGER IF EXISTS tsvectorupdate ON listings;
+-- Initialize existing data
+UPDATE listings 
+SET search_vector = to_tsvector('simple', coalesce(title,'') || ' ' || coalesce(description,''));
 
--- Drop trigger function
-DROP FUNCTION IF EXISTS listings_search_trigger;
+-- Create trigger function to auto-update search_vector
+CREATE FUNCTION listings_search_trigger() RETURNS trigger AS $$
+BEGIN
+  NEW.search_vector :=
+    to_tsvector('simple', coalesce(NEW.title,'') || ' ' || coalesce(NEW.description,''));
+  RETURN NEW;
+END
+$$ LANGUAGE plpgsql;
 
--- Drop column
-ALTER TABLE listings DROP COLUMN IF EXISTS search_vector;
+-- Attach trigger to listings
+CREATE TRIGGER tsvectorupdate
+BEFORE INSERT OR UPDATE ON listings
+FOR EACH ROW EXECUTE FUNCTION listings_search_trigger();
+
+-- Create GIN index for fast search
+CREATE INDEX idx_listings_search_vector ON listings USING gin(search_vector);

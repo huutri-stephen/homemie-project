@@ -5,10 +5,12 @@ import (
 	"homemie/config"
 	"homemie/models/dto"
 	"log"
+	"os"
 	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 func InitDB(cfg config.Config) *gorm.DB {
@@ -21,28 +23,39 @@ func InitDB(cfg config.Config) *gorm.DB {
         cfg.DB.Port,
     )
 
+    // cấu hình logger cho GORM
+    newLogger := logger.New(
+        log.New(os.Stdout, "\r\n", log.LstdFlags), 
+        logger.Config{
+            SlowThreshold: time.Second,
+            LogLevel:      logger.Info,
+            Colorful:      true,
+        },
+    )
+
     var db *gorm.DB
     var err error
 
-    for i := 0; i < 5; i++ { // thử 5 lần
-        db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+    for i := 0; i < 5; i++ {
+        db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+            Logger: newLogger,
+        })
         if err == nil {
             break
         }
         log.Printf("Failed to connect DB (attempt %d/5): %v", i+1, err)
         time.Sleep(10 * time.Second)
     }
-    
+
     if err != nil {
         log.Fatalf("Failed to connect to database: %v", err)
     }
 
     log.Println("Database connected successfully")
 
-	err = db.AutoMigrate(
+    err = db.AutoMigrate(
         &dto.EmailTemplate{},
     )
-
     if err != nil {
         log.Fatalf("AutoMigrate failed: %v", err)
     }
@@ -50,3 +63,4 @@ func InitDB(cfg config.Config) *gorm.DB {
     log.Println("Database migrated successfully")
     return db
 }
+
