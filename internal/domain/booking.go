@@ -10,4 +10,5 @@ type BookingRepository interface {
 	FindByOwnerID(ownerID int64) ([]dto.Booking, error)
 	FindByID(id int64) (*dto.Booking, error)
 	Update(booking *dto.Booking) error
+	FindCompletableBookings() ([]dto.Booking, error)
 }

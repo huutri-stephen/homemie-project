@@ -109,4 +109,15 @@ func (s *BookingService) CancelBooking(bookingID int64, userID int64, userRole s
 	return booking, nil
 }
 
-// Automatically sets Status to "completed" after one days of ScheduledTime
+func (s *BookingService) AutoCompleteBookings() {
+	bookings, err := s.bookingRepo.FindCompletableBookings()
+	if err != nil {
+		// Log the error
+		return
+	}
+
+	for _, booking := range bookings {
+		booking.Status = dto.BookingStatusCompleted
+		s.bookingRepo.Update(&booking)
+	}
+}

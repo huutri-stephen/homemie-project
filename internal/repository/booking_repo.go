@@ -44,3 +44,9 @@ func (r *bookingRepo) FindByID(id int64) (*dto.Booking, error) {
 func (r *bookingRepo) Update(booking *dto.Booking) error {
 	return r.db.Save(booking).Error
 }
+
+func (r *bookingRepo) FindCompletableBookings() ([]dto.Booking, error) {
+	var bookings []dto.Booking
+	err := r.db.Where("status = ? AND scheduled_time < NOW() - INTERVAL '1 day'", dto.BookingStatusAccepted).Find(&bookings).Error
+	return bookings, err
+}
