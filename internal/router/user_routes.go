@@ -22,4 +22,5 @@ func InitUserRoutes(rg *gin.RouterGroup, db *gorm.DB, cfg config.Config, logger 
 
 	user.GET("/profile", h.GetUserProfile)
 	user.PUT("/profile", h.UpdateUserProfile)
+	user.PUT("/password", h.ChangePassword)
 }

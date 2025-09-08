@@ -64,3 +64,54 @@ func SendVerificationEmail(cfg config.Config, db *gorm.DB, email, name, token st
 
 	return nil
 }
+
+func SendPasswordResetEmail(cfg config.Config, db *gorm.DB, email, name, token string) error {
+	var emailTemplate dto.EmailTemplate
+	if err := db.Where("name = ?", "RESET_PASSWORD").First(&emailTemplate).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("password reset email template not found")
+		}
+		return err
+	}
+
+	resetURL := fmt.Sprintf("http://%s:%s%s/reset-password?email=%s&token=%s", cfg.Server.Host, cfg.Server.Port, cfg.Server.ApiVersion, email, token)
+
+	data := struct {
+		Name         string
+		ResetURL     string
+		SupportEmail string
+		Year         int
+	}{
+		Name:         name,
+		ResetURL:     resetURL,
+		SupportEmail: "support@homemie.com",
+		Year:         time.Now().Year(),
+	}
+
+	t, err := template.New("passwordResetEmail").Parse(emailTemplate.Body)
+	if err != nil {
+		return fmt.Errorf("failed to parse email template: %w", err)
+	}
+
+	var body bytes.Buffer
+	if err := t.Execute(&body, data); err != nil {
+		return fmt.Errorf("failed to execute email template: %w", err)
+	}
+
+	auth := smtp.PlainAuth("", cfg.Email.SmtpUser, cfg.Email.SmtpPass, cfg.Email.SmtpHost)
+	smtpAddr := fmt.Sprintf("%s:%s", cfg.Email.SmtpHost, cfg.Email.SmtpPort)
+	to := []string{email}
+	msg := []byte(
+		"To: " + email + "\r\n" +
+			"Subject: " + emailTemplate.Subject + "\r\n" +
+			"MIME-version: 1.0;\r\n" +
+			"Content-Type: text/html; charset=\"UTF-8\";\r\n\r\n" +
+			body.String(),
+	)
+
+	if err := smtp.SendMail(smtpAddr, auth, cfg.Email.SenderEmail, to, msg); err != nil {
+		return fmt.Errorf("failed to send password reset email: %w", err)
+	}
+
+	return nil
+}

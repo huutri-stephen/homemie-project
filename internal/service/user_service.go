@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"homemie/internal/domain"
 	"homemie/models/dto"
 	"homemie/models/request"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
@@ -68,7 +70,7 @@ func (s *UserService) UpdateUserProfile(id uuid.UUID, req request.UpdateUserProf
 	}
 	if req.DateOfBirth != nil {
 		user.DateOfBirth = req.DateOfBirth
-	}	
+	}
 	if req.Gender != "" {
 		user.Gender = req.Gender
 	}
@@ -99,5 +101,34 @@ func (s *UserService) UpdateUserProfile(id uuid.UUID, req request.UpdateUserProf
 	}
 
 	return nil
+}
+
+func (s *UserService) ChangePassword(id uuid.UUID, req request.ChangePasswordRequest) (err error) {
+	defer func(start time.Time) {
+		s.logger.Info("Change password",
+			zap.String("function", "ChangePassword"),
+			zap.Any("id", id),
+			zap.Duration("duration", time.Since(start)),
+			zap.Error(err),
+		)
+	}(time.Now())
+
+	user, err := s.repo.GetUserByID(id)
+	if err != nil {
+		return err
+	}
+
+	if err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.OldPassword)); err != nil {
+		return errors.New("invalid credentials")
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	user.PasswordHash = string(hashedPassword)
+
+	return s.repo.UpdateUser(user)
 }
 

@@ -176,6 +176,73 @@ func (s *AuthService) VerifyEmail(token string, email string) (err error) {
 	return s.repo.UpdateUser(user)
 }
 
+func (s *AuthService) ForgotPassword(email string) (err error) {
+	defer func(start time.Time) {
+		s.logger.Info("Forgot password",
+			zap.String("function", "ForgotPassword"),
+			zap.String("params", email),
+			zap.Duration("duration", time.Since(start)),
+			zap.Error(err),
+		)
+	}(time.Now())
+
+	user, err := s.repo.GetUserByEmail(email)
+	if err != nil {
+		return errors.New("user not found")
+	}
+
+	token, err := generateRandomToken(32)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+	user.PasswordResetToken = token
+	expiresAt := now.Add(15 * time.Minute)
+	user.PasswordResetExpiresAt = &expiresAt
+
+	if err = s.repo.UpdateUser(user); err != nil {
+		return err
+	}
+
+	return utils.SendPasswordResetEmail(s.Cfg, s.DB, user.Email, user.Name, token)
+}
+
+func (s *AuthService) ResetPassword(input request.ResetPasswordRequest) (err error) {
+	defer func(start time.Time) {
+		s.logger.Info("Reset password",
+			zap.String("function", "ResetPassword"),
+			zap.Any("params", input),
+			zap.Duration("duration", time.Since(start)),
+			zap.Error(err),
+		)
+	}(time.Now())
+
+	user, err := s.repo.GetUserByEmail(input.Email)
+	if err != nil {
+		return errors.New("user not found")
+	}
+
+	if user.PasswordResetToken == "" || user.PasswordResetToken != input.Token {
+		return errors.New("invalid token")
+	}
+
+	if user.PasswordResetExpiresAt.Before(time.Now()) {
+		return errors.New("token expired")
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	user.PasswordHash = string(hashedPassword)
+	user.PasswordResetToken = ""
+	user.PasswordResetExpiresAt = nil
+
+	return s.repo.UpdateUser(user)
+}
+
 func generateRandomToken(length int) (string, error) {
 	bytes := make([]byte, length)
 	if _, err := rand.Read(bytes); err != nil {

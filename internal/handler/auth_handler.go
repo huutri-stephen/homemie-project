@@ -172,3 +172,61 @@ func (h *AuthHandler) VerifyEmail(c *gin.Context) {
 		Message: "Email verified successfully",
 	})
 }
+
+func (h *AuthHandler) ForgotPassword(c *gin.Context) {
+	logger := h.getLogger(c)
+	var req request.ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Error("Failed to bind forgot password request", zap.Error(err))
+		c.JSON(http.StatusBadRequest, response.BaseResponse{
+			Success: false,
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	logger.Info("Processing forgot password request", zap.String("email", req.Email))
+	if err := h.svc.ForgotPassword(req.Email); err != nil {
+		logger.Error("Failed to send password reset email", zap.Error(err), zap.String("email", req.Email))
+		c.JSON(http.StatusInternalServerError, response.BaseResponse{
+			Success: false,
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	logger.Info("Password reset email sent successfully", zap.String("email", req.Email))
+	c.JSON(http.StatusOK, response.BaseResponse{
+		Success: true,
+		Message: "Password reset email sent",
+	})
+}
+
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+	logger := h.getLogger(c)
+	var req request.ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Error("Failed to bind reset password request", zap.Error(err))
+		c.JSON(http.StatusBadRequest, response.BaseResponse{
+			Success: false,
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	logger.Info("Processing reset password request", zap.String("email", req.Email))
+	if err := h.svc.ResetPassword(req); err != nil {
+		logger.Error("Failed to reset password", zap.Error(err), zap.String("email", req.Email))
+		c.JSON(http.StatusInternalServerError, response.BaseResponse{
+			Success: false,
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	logger.Info("Password reset successfully", zap.String("email", req.Email))
+	c.JSON(http.StatusOK, response.BaseResponse{
+		Success: true,
+		Message: "Password reset successfully",
+	})
+}
