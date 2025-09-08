@@ -1,7 +1,7 @@
 {
 	"info": {
 		"_postman_id": "871fe9ed-aac5-411c-a93c-bfad829bb780",
-		"name": "MIHOME",
+		"name": "HOMEMIE-PROJECT",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "41393318",
 		"_collection_link": "https://mihome-3677.postman.co/workspace/mihome~cd264af0-f800-438d-8e97-a7f0f6f1852c/collection/41393318-871fe9ed-aac5-411c-a93c-bfad829bb780?action=share&source=collection_link&creator=41393318"
@@ -492,6 +492,77 @@
 								"v1",
 								"bookings",
 								"owner-bookings"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "USER",
+			"item": [
+				{
+					"name": "Get User Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth-token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{url-local}}/api/v1/user/profile",
+							"host": [
+								"{{url-local}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"profile"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update User Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth-token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "default"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"name\": \"John Doe\",\n    \"phone\": \"1234567890\",\n    \"date_of_birth\": \"1990-01-01T00:00:00Z\",\n    \"gender\": \"male\",\n    \"avatar_url\": \"https://example.com/avatar.jpg\",\n    \"bio\": \"Software engineer.\",\n    \"company_name\": \"ACME Inc.\",\n    \"business_license_number\": \"12345\",\n    \"agent_license_number\": \"67890\",\n    \"identity_type\": \"personal\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url-local}}/api/v1/user/profile",
+							"host": [
+								"{{url-local}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"profile"
 							]
 						}
 					},

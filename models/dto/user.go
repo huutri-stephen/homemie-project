@@ -5,13 +5,13 @@ import (
 )
 
 type User struct {
-	ID                     int64 `gorm:"primaryKey"`
+	ID                     int64  `gorm:"primaryKey"`
 	FirstName              string `gorm:"type:varchar(50)"`
 	LastName               string `gorm:"type:varchar(50)"`
 	Name                   string `gorm:"type:varchar(100)"`
 	Email                  string `gorm:"uniqueIndex;type:varchar(100);not null"`
 	Phone                  string `gorm:"type:varchar(20)"`
-	DateOfBirth            *time.Time
+	DateOfBirth            *time.Time `gorm:"column:date_of_birth"`
 	Gender                 string `gorm:"type:gender_enum;default:'other'"`
 	AvatarURL              string `gorm:"type:varchar(255)"`
 	Bio                    string `gorm:"type:text"`

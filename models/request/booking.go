@@ -1,8 +1,8 @@
 package request
 
 type CreateBookingRequest struct {
-	ListingID      int64  `json:"listing_id" binding:"required"`
-	ScheduledTime  string `json:"scheduled_time" binding:"required"`
+	ListingID         int64  `json:"listing_id" binding:"required"`
+	ScheduledTime     string `json:"scheduled_time" binding:"required"`
 	MessageFromRenter string `json:"message_from_renter"`
 }
 

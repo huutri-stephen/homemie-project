@@ -1,11 +1,11 @@
 package infra
 
 import (
-    "log"
-    "gorm.io/gorm"
+	"gorm.io/gorm"
+	"log"
 )
 
 func SeedData(db *gorm.DB) {
-    log.Println("Seeding mock data...")
-    log.Println("Seeded successfully.")
+	log.Println("Seeding mock data...")
+	log.Println("Seeded successfully.")
 }

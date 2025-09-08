@@ -26,15 +26,15 @@ func SendVerificationEmail(cfg config.Config, db *gorm.DB, email, name, token st
 	verificationURL := fmt.Sprintf("http://%s:%s%s/verify-email?email=%s&token=%s", cfg.Server.Host, cfg.Server.Port, cfg.Server.ApiVersion, email, token)
 
 	data := struct {
-		Name        	string
-		VerifyURL   	string
-		SupportEmail 	string
-		Year        	int
+		Name         string
+		VerifyURL    string
+		SupportEmail string
+		Year         int
 	}{
-		Name:        name,
-		VerifyURL:   verificationURL,
+		Name:         name,
+		VerifyURL:    verificationURL,
 		SupportEmail: "support@homemie.com",
-		Year:        time.Now().Year(),
+		Year:         time.Now().Year(),
 	}
 
 	t, err := template.New("verificationEmail").Parse(emailTemplate.Body)

@@ -9,8 +9,8 @@ import (
 
 type Config struct {
 	Server struct {
-		Port string
-		Host string
+		Port       string
+		Host       string
 		ApiVersion string
 	}
 	DB struct {

@@ -75,8 +75,8 @@ func (s *ListingService) Create(input request.CreateListingRequest) (listing *dt
 		AllowedPetTypes: utils.ConvertStringArrayToJSON(input.AllowedPetTypes),
 		// Latitude:        input.Latitude,
 		// Longitude:       input.Longitude,
-		ListingType:     input.ListingType,
-		DepositAmount:   input.DepositAmount,
+		ListingType:   input.ListingType,
+		DepositAmount: input.DepositAmount,
 	}
 
 	err = s.repo.Create(listing)
