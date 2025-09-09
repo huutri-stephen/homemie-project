@@ -9,12 +9,12 @@ WORKDIR /app
 # Tất cả các lệnh tiếp theo sẽ được chạy trong thư mục này
 COPY go.mod go.sum ./
 # Copy 2 file go.mod và go.sum từ local vào /app trong container
-RUN go mod download
-# Tải các dependency/module được khai báo trong go.mod và go.sum
+COPY vendor vendor
+# Copy vendored dependencies
 COPY . .
 # Copy toàn bộ nội dung thư mục hiện tại vào container tại /app
 # Mang toàn bộ mã nguồn lên container để build và chạy.
-RUN go build -o homemie cmd/main.go
+RUN go build -mod=vendor -o homemie cmd/main.go
 # Biên dịch file cmd/main.go thành file nhị phân tên homemie
 # Tạo executable để container chạy khi khởi động
 

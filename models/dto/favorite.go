@@ -3,7 +3,7 @@ package dto
 import "time"
 
 type Favorite struct {
-	UserID    uint `gorm:"primaryKey"`
-	ListingID uint `gorm:"primaryKey"`
-	CreatedAt time.Time
+	UserID    int64     `json:"user_id"`
+	ListingID int64     `json:"listing_id"`
+	CreatedAt time.Time `json:"created_at"`
 }

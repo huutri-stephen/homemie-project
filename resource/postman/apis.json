@@ -638,7 +638,102 @@
 					},
 					"response": []
 				}
-			]
-		}
-	]
+            ]
+        },
+        {
+            "name": "FAVORITE",
+            "item": [
+                {
+                    "name": "Add To Favorites",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth-token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "default"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"listing_id\": {{mock-id-listing}}\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{url-local}}/api/v1/favorites",
+                            "host": [
+                                "{{url-local}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "favorites"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Remove From Favorites",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth-token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{url-local}}/api/v1/favorites/{{mock-id-listing}}",
+                            "host": [
+                                "{{url-local}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "favorites",
+                                "{{mock-id-listing}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Favorite Listings",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{auth-token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{url-local}}/api/v1/favorites",
+                            "host": [
+                                "{{url-local}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "favorites"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
 }
