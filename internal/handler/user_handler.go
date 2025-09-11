@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -30,7 +29,7 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := h.svc.GetUserProfile(userID.(uuid.UUID))
+	user, err := h.svc.GetUserProfile(userID.(int64))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, response.BaseResponse{
 			Success: false,
@@ -64,7 +63,7 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 		return
 	}
 
-	if err := h.svc.UpdateUserProfile(userID.(uuid.UUID), req); err != nil {
+	if err := h.svc.UpdateUserProfile(userID.(int64), req); err != nil {
 		c.JSON(http.StatusInternalServerError, response.BaseResponse{
 			Success: false,
 			Error:   err.Error(),
@@ -97,7 +96,7 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	if err := h.svc.ChangePassword(userID.(uuid.UUID), req); err != nil {
+	if err := h.svc.ChangePassword(userID.(int64), req); err != nil {
 		c.JSON(http.StatusInternalServerError, response.BaseResponse{
 			Success: false,
 			Error:   err.Error(),

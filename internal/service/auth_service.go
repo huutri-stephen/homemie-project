@@ -19,14 +19,15 @@ import (
 )
 
 type AuthService struct {
-	repo   domain.AuthRepository
+	authRepo   domain.AuthRepository
+	userRepo   domain.UserRepository
 	Cfg    config.Config
 	DB     *gorm.DB
 	logger *zap.Logger
 }
 
-func NewAuthService(repo domain.AuthRepository, cfg config.Config, db *gorm.DB, logger *zap.Logger) *AuthService {
-	return &AuthService{repo: repo, Cfg: cfg, DB: db, logger: logger}
+func NewAuthService(authRepo domain.AuthRepository, userRepo domain.UserRepository, cfg config.Config, db *gorm.DB, logger *zap.Logger) *AuthService {
+	return &AuthService{authRepo: authRepo, userRepo: userRepo,Cfg: cfg, DB: db, logger: logger}
 }
 
 func (s *AuthService) SignUp(input request.SignUpRequest) (err error) {
@@ -72,7 +73,7 @@ func (s *AuthService) SignUp(input request.SignUpRequest) (err error) {
 		Role:                  "user",
 	}
 
-	return s.repo.CreateUser(user)
+	return s.userRepo.CreateUser(user)
 }
 
 func (s *AuthService) Login(input request.LoginRequest) (accessToken string, refreshToken string, user *dto.User, err error) {
@@ -85,7 +86,7 @@ func (s *AuthService) Login(input request.LoginRequest) (accessToken string, ref
 		)
 	}(time.Now())
 
-	user, err = s.repo.GetUserByEmail(input.Email)
+	user, err = s.userRepo.GetUserByEmail(input.Email)
 	if err != nil {
 		return "", "", nil, errors.New("user not found")
 	}
@@ -116,7 +117,7 @@ func (s *AuthService) SendVerificationEmail(email string) (err error) {
 		)
 	}(time.Now())
 
-	user, err := s.repo.GetUserByEmail(email)
+	user, err := s.userRepo.GetUserByEmail(email)
 	if err != nil {
 		return errors.New("user not found")
 	}
@@ -133,7 +134,7 @@ func (s *AuthService) SendVerificationEmail(email string) (err error) {
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 
-	if err = s.repo.CreateToken(t); err != nil {
+	if err = s.authRepo.CreateToken(t); err != nil {
 		return err
 	}
 
@@ -150,12 +151,12 @@ func (s *AuthService) VerifyEmail(token string, email string) (err error) {
 		)
 	}(time.Now())
 
-	user, err := s.repo.GetUserByEmail(email)
+	user, err := s.userRepo.GetUserByEmail(email)
 	if err != nil {
 		return errors.New("user not found")
 	}
 
-	t, err := s.repo.GetToken(token, user.ID, dto.EmailVerification)
+	t, err := s.authRepo.GetToken(token, user.ID, dto.EmailVerification)
 	if err != nil {
 		return errors.New("invalid token")
 	}
@@ -165,7 +166,7 @@ func (s *AuthService) VerifyEmail(token string, email string) (err error) {
 	}
 
 	// delete the token after verification
-	if err = s.repo.DeleteToken(t); err != nil {
+	if err = s.authRepo.DeleteToken(t); err != nil {
 		return err
 	}
 
@@ -173,7 +174,7 @@ func (s *AuthService) VerifyEmail(token string, email string) (err error) {
 	user.Status = "active"
 	user.EmailVerifiedAt = &now
 
-	return s.repo.UpdateUser(user)
+	return s.userRepo.UpdateUser(user)
 }
 
 func (s *AuthService) ForgotPassword(email string) (err error) {
@@ -186,7 +187,7 @@ func (s *AuthService) ForgotPassword(email string) (err error) {
 		)
 	}(time.Now())
 
-	user, err := s.repo.GetUserByEmail(email)
+	user, err := s.userRepo.GetUserByEmail(email)
 	if err != nil {
 		return errors.New("user not found")
 	}
@@ -201,7 +202,7 @@ func (s *AuthService) ForgotPassword(email string) (err error) {
 	expiresAt := now.Add(15 * time.Minute)
 	user.PasswordResetExpiresAt = &expiresAt
 
-	if err = s.repo.UpdateUser(user); err != nil {
+	if err = s.userRepo.UpdateUser(user); err != nil {
 		return err
 	}
 
@@ -218,7 +219,7 @@ func (s *AuthService) ResetPassword(input request.ResetPasswordRequest) (err err
 		)
 	}(time.Now())
 
-	user, err := s.repo.GetUserByEmail(input.Email)
+	user, err := s.userRepo.GetUserByEmail(input.Email)
 	if err != nil {
 		return errors.New("user not found")
 	}
@@ -240,7 +241,7 @@ func (s *AuthService) ResetPassword(input request.ResetPasswordRequest) (err err
 	user.PasswordResetToken = ""
 	user.PasswordResetExpiresAt = nil
 
-	return s.repo.UpdateUser(user)
+	return s.userRepo.UpdateUser(user)
 }
 
 func generateRandomToken(length int) (string, error) {

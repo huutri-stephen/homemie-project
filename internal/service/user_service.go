@@ -7,7 +7,6 @@ import (
 	"homemie/models/request"
 	"time"
 
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -21,7 +20,7 @@ func NewUserService(repo domain.UserRepository, logger *zap.Logger) *UserService
 	return &UserService{repo: repo, logger: logger}
 }
 
-func (s *UserService) GetUserProfile(id uuid.UUID) (user *dto.User, err error) {
+func (s *UserService) GetUserProfile(id int64) (user *dto.User, err error) {
 	defer func(start time.Time) {
 		s.logger.Info("Get user profile",
 			zap.String("function", "GetUserProfile"),
@@ -39,7 +38,7 @@ func (s *UserService) GetUserProfile(id uuid.UUID) (user *dto.User, err error) {
 	return user, nil
 }
 
-func (s *UserService) UpdateUserProfile(id uuid.UUID, req request.UpdateUserProfileRequest) (err error) {
+func (s *UserService) UpdateUserProfile(id int64, req request.UpdateUserProfileRequest) (err error) {
 	defer func(start time.Time) {
 		s.logger.Info("Update user profile",
 			zap.String("function", "UpdateUserProfile"),
@@ -103,7 +102,7 @@ func (s *UserService) UpdateUserProfile(id uuid.UUID, req request.UpdateUserProf
 	return nil
 }
 
-func (s *UserService) ChangePassword(id uuid.UUID, req request.ChangePasswordRequest) (err error) {
+func (s *UserService) ChangePassword(id int64, req request.ChangePasswordRequest) (err error) {
 	defer func(start time.Time) {
 		s.logger.Info("Change password",
 			zap.String("function", "ChangePassword"),
