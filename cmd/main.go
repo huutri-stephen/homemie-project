@@ -19,6 +19,9 @@ func main() {
 	infra.SeedData(db)
 	infra.StartCronJobs(db, appLogger)
 
-	r := internal.NewRouter(db, cfg, appLogger)
+		s3Client := infra.NewS3Client()
+	bucketName := cfg.S3.BucketName
+	infra.CreateBucketIfNotExists(s3Client, bucketName)
+	r := internal.NewRouter(db, cfg, appLogger, s3Client)
 	r.Run(":" + cfg.Server.Port)
 }

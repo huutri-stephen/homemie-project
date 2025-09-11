@@ -14,6 +14,7 @@ run:
 
 mod:
 	go mod tidy
+	go mod vendor
 
 lint:
 	@echo "Running golangci-lint..."
