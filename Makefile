@@ -67,5 +67,18 @@ debug:
 		homemie \
 		dlv debug --headless --listen=:40000 --api-version=2 --accept-multiclient ./app
 
+minio-up:
+	docker run -d \
+	  -p 9000:9000 \
+	  -p 9001:9001 \
+	  --name minio \
+	  -e "MINIO_ROOT_USER=admin" \
+	  -e "MINIO_ROOT_PASSWORD=admin123" \
+	  quay.io/minio/minio server /data --console-address ":9001"
+
+minio-down:
+	@echo "Stopping and removing MinIO container..."
+	@docker stop minio || true
+	@docker rm minio || true
 
 .PHONY: run tidy lint build dev setup-env migrate-up migrate-down migrate-create test

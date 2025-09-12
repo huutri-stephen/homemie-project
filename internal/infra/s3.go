@@ -34,20 +34,58 @@ func NewS3Client() *s3.Client {
 	})
 }
 
+func EnsureBucketPolicy(s3Client *s3.Client, bucketName string) error {
+	policy := `{
+	  "Version": "2012-10-17",
+	  "Statement": [
+	    {
+	      "Action": [
+	        "s3:GetBucketLocation",
+	        "s3:ListBucket"
+	      ],
+	      "Effect": "Allow",
+	      "Principal": "*",
+	      "Resource": "arn:aws:s3:::` + bucketName + `"
+	    },
+	    {
+	      "Action": "s3:GetObject",
+	      "Effect": "Allow",
+	      "Principal": "*",
+	      "Resource": "arn:aws:s3:::` + bucketName + `/*"
+	    }
+	  ]
+	}`
+
+	_, err := s3Client.PutBucketPolicy(context.TODO(), &s3.PutBucketPolicyInput{
+		Bucket: aws.String(bucketName),
+		Policy: aws.String(policy),
+	})
+	return err
+}
+
 func CreateBucketIfNotExists(client *s3.Client, bucketName string) {
-	_, err := client.HeadBucket(context.TODO(), &s3.HeadBucketInput{
+	ctx := context.TODO()
+
+	_, err := client.HeadBucket(ctx, &s3.HeadBucketInput{
 		Bucket: aws.String(bucketName),
 	})
-	if err != nil {
-		log.Printf("Bucket %s does not exist. Creating it...", bucketName)
-		_, createErr := client.CreateBucket(context.TODO(), &s3.CreateBucketInput{
-			Bucket: aws.String(bucketName),
-		})
-		if createErr != nil {
-			log.Fatalf("failed to create bucket %s: %v", bucketName, createErr)
-		}
-		log.Printf("Bucket %s created successfully.", bucketName)
-	} else {
+	if err == nil {
 		log.Printf("Bucket %s already exists.", bucketName)
+		return
 	}
+
+	log.Printf("Bucket %s does not exist. Creating it...", bucketName)
+
+	// Only add CreateBucketConfiguration if region != us-east-1
+	_, createErr := client.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(bucketName),
+	})
+	if createErr != nil {
+		log.Fatalf("failed to create bucket %s: %v", bucketName, createErr)
+	}
+
+	log.Printf("Bucket %s created successfully.", bucketName)
+	EnsureBucketPolicy(client, bucketName)
+	log.Printf("Public read policy applied to bucket %s", bucketName)
 }
+

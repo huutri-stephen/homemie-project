@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:  # Service PostgreSQL database
     image: postgres:15  # Dùng image postgres phiên bản 15
@@ -38,8 +36,23 @@ services:
     networks:
       - homemie-net  # Gắn vào cùng mạng với db
 
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server /data --console-address ":9001"
+    networks:
+      - homemie-net
+
 volumes:
   postgres_data:  # Khai báo volume để lưu trữ dữ liệu DB
+  minio_data:
 
 networks:
   homemie-net:  # Khai báo mạng riêng dùng cho các service trong hệ thống

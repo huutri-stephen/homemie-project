@@ -28,11 +28,12 @@ type Config struct {
 		SenderEmail string
 	}
 	S3 struct {
-		Endpoint   string
-		AccessKey  string
-		SecretKey  string
-		Region     string
-		BucketName string
+		Endpoint        string
+		ExternalEndpoint string
+		AccessKey       string
+		SecretKey       string
+		Region          string
+		BucketName      string
 	}
 }
 
@@ -60,6 +61,7 @@ func LoadConfig() Config {
 	cfg.Email.SenderEmail = getEnv("SMTP_SENDER", "noreply.homemie@gmail.com")
 
 	cfg.S3.Endpoint = getEnv("S3_ENDPOINT", "http://localhost:9000")
+	cfg.S3.ExternalEndpoint = getEnv("S3_EXTERNAL_ENDPOINT", "http://localhost:9000")
 	cfg.S3.AccessKey = getEnv("S3_ACCESS_KEY_ID", "admin")
 	cfg.S3.SecretKey = getEnv("S3_SECRET_ACCESS_KEY", "admin123")
 	cfg.S3.Region = getEnv("S3_REGION", "us-east-1")
