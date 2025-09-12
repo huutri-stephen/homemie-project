@@ -30,6 +30,7 @@ func NewRouter(db *gorm.DB, cfg config.Config, logger *zap.Logger, s3Client *s3.
 	router.InitUserRoutes(protected, db, logger)
 	router.InitFavoriteRoutes(protected, db, logger)
 	router.InitMediaRoutes(protected, db, logger, s3Client, externalEndpoint)
+	router.InitListingImageRoutes(protected, db, logger)
 
 	return r
 }

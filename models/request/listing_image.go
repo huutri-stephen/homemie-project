@@ -1,13 +1,18 @@
 package request
 
-import "time"
+type AddListingImagesRequest struct {
+	ListingID int64   `json:"listing_id" binding:"required"`
+	Images []Image `json:"images" binding:"required"`
+}
 
 type ListingImageRequest struct {
-	ID        int64  `gorm:"primaryKey"`
-	ListingID int64  `gorm:"not null"`
-	ImageURL  string `gorm:"type:varchar(500);not null"`
-	IsMain    bool   `gorm:"default:false"`
-	SortOrder int32  `gorm:"default:0"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ImageURL  string `json:"image_url" binding:"required"`
+	IsMain    bool   `json:"is_main"`
+	SortOrder int32    `json:"sort_order"`
+}
+
+type Image struct {
+	ImageURL string 	`json:"image_url" binding:"required"`
+	IsMain    bool   	`json:"is_main"`
+	SortOrder int32    	`json:"sort_order"`
 }

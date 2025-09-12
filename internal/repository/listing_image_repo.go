@@ -1,34 +1,25 @@
 package repository
 
 import (
+	"homemie/internal/domain"
 	"homemie/models/dto"
-	"time"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
-type ListingImageRepository struct {
+type listingImageRepository struct {
 	db     *gorm.DB
 	logger *zap.Logger
 }
 
-func NewListingImageRepository(db *gorm.DB, logger *zap.Logger) *ListingImageRepository {
-	return &ListingImageRepository{db, logger}
+func NewListingImageRepository(db *gorm.DB, logger *zap.Logger) domain.ListingImageRepository {
+	return &listingImageRepository{db, logger}
 }
 
-func (r *ListingImageRepository) Create(listingImage *dto.ListingImage) (createdImage *dto.ListingImage, err error) {
-	defer func(start time.Time) {
-		r.logger.Info("Create listing image",
-			zap.String("function", "Create"),
-			zap.Any("params", listingImage),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
-		)
-	}(time.Now())
-
-	if err = r.db.Create(listingImage).Error; err != nil {
+func (r *listingImageRepository) AddListingImages(listingImages []dto.ListingImage) ([]dto.ListingImage, error) {
+	if err := r.db.Create(&listingImages).Error; err != nil {
 		return nil, err
 	}
-	return listingImage, nil
+	return listingImages, nil
 }

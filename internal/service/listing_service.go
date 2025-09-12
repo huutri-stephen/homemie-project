@@ -3,7 +3,6 @@ package service
 import (
 	"errors"
 	"homemie/internal/domain"
-	"homemie/internal/repository"
 	"homemie/models/dto"
 	"homemie/models/request"
 	"homemie/pkg/utils"
@@ -15,12 +14,12 @@ import (
 
 type ListingService struct {
 	repo             domain.ListingRepository
-	addressRepo      *repository.AddressRepository
-	listingImageRepo *repository.ListingImageRepository
+	addressRepo      domain.AddressRepository
+	listingImageRepo domain.ListingImageRepository
 	logger           *zap.Logger
 }
 
-func NewListingService(repo domain.ListingRepository, addressRepo *repository.AddressRepository, listingImageRepo *repository.ListingImageRepository, logger *zap.Logger) *ListingService {
+func NewListingService(repo domain.ListingRepository, addressRepo domain.AddressRepository, listingImageRepo domain.ListingImageRepository, logger *zap.Logger) *ListingService {
 	return &ListingService{repo, addressRepo, listingImageRepo, logger}
 }
 
@@ -85,16 +84,21 @@ func (s *ListingService) Create(input request.CreateListingRequest) (listing *dt
 		return nil, err
 	}
 
+	var listingImages []dto.ListingImage
 	for _, image := range input.Images {
-		img := dto.ListingImage{
+		listingImages = append(listingImages, dto.ListingImage{
 			ListingID: listing.ID,
 			ImageURL:  image.ImageURL,
 			IsMain:    image.IsMain,
 			SortOrder: image.SortOrder,
-		}
-		_, err := s.listingImageRepo.Create(&img)
+		})
+	}
+
+	if len(listingImages) > 0 {
+		_, err = s.listingImageRepo.AddListingImages(listingImages)
 		if err != nil {
-			s.logger.Error("Failed to create listing image", zap.Error(err))
+			s.logger.Error("Failed to create listing images", zap.Error(err))
+			// Here we might want to decide if we should delete the created listing
 			return nil, err
 		}
 	}
