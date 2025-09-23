@@ -1,73 +1,44 @@
-# File: Makefile
+export PATH := $(PATH):$(shell go env GOPATH)/bin
+include .env
 
-APP_NAME = homemie
-ENV_FILE = .env
-MIGRATIONS_DIR = db/migrations
+MIGRATIONS_DIR = db/migrations 
 URL = postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_URL):$(DB_PORT)/$(DB_NAME)?sslmode=disable
-include $(ENV_FILE)
-export $(shell sed 's/=.*//' $(ENV_FILE))
 
+.PHONY: models 
 
-run:
-	@echo "Running $(APP_NAME)..."
-	go run cmd/main.go
-
-mod:
+## Go modules
+mod: ## Tidy go.mod & go.sum
 	go mod tidy
-	go mod vendor
 
-lint:
-	@echo "Running golangci-lint..."
-	golangci-lint run
-
-build:
-	@echo "Building $(APP_NAME)..."
-	go build -o bin/$(APP_NAME) cmd/main.go
-
-dev:
-	air
-
-setup-env:
-	@if [ ! -f $(ENV_FILE) ]; then cp .env.example $(ENV_FILE); fi
-
-migrate-create:
+## Migration commands
+migrate-create: ## Create a new database migration
 	@read -p "Enter migration name: " name; \
 	migrate create -ext sql -dir $(MIGRATIONS_DIR) -seq $$name
 
-migrate-up:
+migrate-up: ## Apply all up migrations
 	migrate -path $(MIGRATIONS_DIR) -database "$(URL)" up
 
-migrate-down:
+migrate-down: ## Rollback last migration
 	migrate -path $(MIGRATIONS_DIR) -database "$(URL)" down
 
-migrate-version:
+migrate-version: ## Show current migration version
 	migrate -path $(MIGRATIONS_DIR) -database "$(URL)" version
 
-test:
-	go test ./...
+## Docker commands
+docker-run: ## Build & start containers
+	docker compose up --build -d
 
-db-init:
-	@echo "Checking if database '$(DB_NAME)' exists..."
-	@if ! PGPASSWORD=$(DB_PASSWORD) psql -U $(DB_USER) -h $(DB_HOST) -p $(DB_PORT) -tAc "SELECT 1 FROM pg_database WHERE datname='$(DB_NAME)'" | grep -q 1; then \
-		echo "Creating database $(DB_NAME)..."; \
-		PGPASSWORD=$(DB_PASSWORD) createdb -U $(DB_USER) -h $(DB_HOST) -p $(DB_PORT) $(DB_NAME); \
-	else \
-		echo "Database $(DB_NAME) already exists."; \
-	fi
+docker-remove: ## Stop & remove containers + volumes
+	docker compose down -v
 
-docker-build:
-	docker build -t homemie .
+docker-stop: ## Stop containers
+	docker compose stop
 
-docker-run:
-	docker run -p 8080:8080 homemie
+docker-start: ## Start stopped containers
+	docker compose start
 
-debug:
-	docker run -it --rm -p 40000:40000 \
-		-v $(pwd):/app \
-		homemie \
-		dlv debug --headless --listen=:40000 --api-version=2 --accept-multiclient ./app
-
-minio-up:
+## MinIO commands
+minio-up: ## Run MinIO server in Docker
 	docker run -d \
 	  -p 9000:9000 \
 	  -p 9001:9001 \
@@ -76,9 +47,16 @@ minio-up:
 	  -e "MINIO_ROOT_PASSWORD=admin123" \
 	  quay.io/minio/minio server /data --console-address ":9001"
 
-minio-down:
+minio-down: ## Stop & remove MinIO container
 	@echo "Stopping and removing MinIO container..."
 	@docker stop minio || true
 	@docker rm minio || true
 
-.PHONY: run tidy lint build dev setup-env migrate-up migrate-down migrate-create test
+## Helpers
+help: ## Show available commands
+	@echo "Available commands:"
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  make %-15s %s\n", $$1, $$2}'
+
+## SQLBoiler commands
+models: ## Generate models using sqlboiler
+	@(cd db && sqlboiler psql --no-tests)

@@ -1,0 +1,10 @@
+[psql]
+    dbname = "homemie_rental_db"
+    host = "localhost"
+    port = 5432
+    user = "postgres"
+    pass = "fU640qvD2Hc0"
+    sslmode = "disable"
+    schema = "public"
+    no-tests = true
+
