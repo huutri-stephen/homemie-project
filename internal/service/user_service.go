@@ -7,6 +7,7 @@ import (
 	"homemie/internal/repo"
 	"time"
 
+	"github.com/aarondl/null/v8"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -63,42 +64,42 @@ func (s *userService) UpdateUserProfile(id int64, req dto.UpdateUserProfileReque
 
 	// Profile cơ bản
 	if req.FirstName != "" {
-		user.FirstName = req.FirstName
+		user.FirstName = null.StringFrom(req.FirstName)
 	}
 	if req.LastName != "" {
-		user.LastName = req.LastName
+		user.LastName = null.StringFrom(req.LastName)
 	}
 	if req.Name != "" {
-		user.Name = req.Name
+		user.Name = null.StringFrom(req.Name)
 	}
 	if req.Phone != "" {
-		user.Phone = req.Phone
+		user.Phone = null.StringFrom(req.Phone)
 	}
 	if req.DateOfBirth != nil {
-		user.DateOfBirth = req.DateOfBirth
+		user.DateOfBirth = null.TimeFrom(*req.DateOfBirth)
 	}
 	if req.Gender != "" {
-		user.Gender = req.Gender
+		user.Gender = null.StringFrom(req.Gender)
 	}
 	if req.AvatarURL != "" {
-		user.AvatarURL = req.AvatarURL
+		user.AvatarURL = null.StringFrom(req.AvatarURL)
 	}
 	if req.Bio != "" {
-		user.Bio = req.Bio
+		user.Bio = null.StringFrom(req.Bio)
 	}
 
 	// Dành cho loại account owner/agent/business
 	if req.CompanyName != "" {
-		user.CompanyName = req.CompanyName
+		user.CompanyName = null.StringFrom(req.CompanyName)
 	}
 	if req.BusinessLicenseNumber != "" {
-		user.BusinessLicenseNumber = req.BusinessLicenseNumber
+		user.BusinessLicenseNumber = null.StringFrom(req.BusinessLicenseNumber)
 	}
 	if req.AgentLicenseNumber != "" {
-		user.AgentLicenseNumber = req.AgentLicenseNumber
+		user.AgentLicenseNumber = null.StringFrom(req.AgentLicenseNumber)
 	}
 	if req.IdentityType != "" {
-		user.IdentityType = req.IdentityType
+		user.IdentityType = null.StringFrom(req.IdentityType)
 	}
 
 	// Persist

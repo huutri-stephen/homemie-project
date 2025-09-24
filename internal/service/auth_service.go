@@ -13,6 +13,7 @@ import (
 	"homemie/internal/repo"
 	"homemie/pkg/utils"
 
+	"github.com/aarondl/null/v8"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -55,32 +56,32 @@ func (s *authService) SignUp(input dto.SignUpRequest) (err error) {
 		return err
 	}
 
-	var dateOfBirth *time.Time
+	var dateOfBirth null.Time
 	if input.DateOfBirth != "" {
 		dob, err := time.Parse("2006-01-02", input.DateOfBirth)
 		if err == nil {
-			dateOfBirth = &dob
+			dateOfBirth = null.TimeFrom(dob)
 		}
 	}
 
 	user := &models.User{
-		FirstName:             input.FirstName,
-		LastName:              input.LastName,
-		Name:                  input.Name,
+		FirstName:             null.StringFrom(input.FirstName),
+		LastName:              null.StringFrom(input.LastName),
+		Name:                  null.StringFrom(input.Name),
 		Email:                 strings.ToLower(input.Email),
 		PasswordHash:          string(hashedPassword),
-		Phone:                 input.Phone,
+		Phone:                 null.StringFrom(input.Phone),
 		DateOfBirth:           dateOfBirth,
-		Gender:                input.Gender,
-		AvatarURL:             input.AvatarURL,
-		Bio:                   input.Bio,
-		UserType:              input.UserType,
-		IdentityType:          input.IdentityType,
-		CompanyName:           input.CompanyName,
-		BusinessLicenseNumber: input.BusinessLicenseNumber,
-		AgentLicenseNumber:    input.AgentLicenseNumber,
-		Status:                "inactive", // Default status
-		Role:                  "user",
+		Gender:                null.StringFrom(input.Gender),
+		AvatarURL:             null.StringFrom(input.AvatarURL),
+		Bio:                   null.StringFrom(input.Bio),
+		UserType:              null.StringFrom(input.UserType),
+		IdentityType:          null.StringFrom(input.IdentityType),
+		CompanyName:           null.StringFrom(input.CompanyName),
+		BusinessLicenseNumber: null.StringFrom(input.BusinessLicenseNumber),
+		AgentLicenseNumber:    null.StringFrom(input.AgentLicenseNumber),
+		Status:                null.StringFrom("inactive"), // Default status
+		Role:                  null.StringFrom("user"),
 	}
 
 	return s.userRepo.CreateUser(user)
@@ -101,7 +102,7 @@ func (s *authService) Login(input dto.LoginRequest) (accessToken string, refresh
 		return "", "", nil, errors.New("user not found")
 	}
 
-	if user.Status != "active" {
+	if user.Status.String != "active" {
 		return "", "", nil, errors.New("account is not active, please verify your email")
 	}
 
@@ -109,7 +110,7 @@ func (s *authService) Login(input dto.LoginRequest) (accessToken string, refresh
 		return "", "", nil, errors.New("invalid credentials")
 	}
 
-	accessToken, refreshToken, err = utils.GenerateTokens(*user)
+	accessToken, refreshToken, err = utils.GenerateTokens(user)
 	if err != nil {
 		return "", "", nil, errors.New("could not generate tokens")
 	}
@@ -148,7 +149,7 @@ func (s *authService) SendVerificationEmail(email string) (err error) {
 		return err
 	}
 
-	return utils.SendVerificationEmail(s.Cfg, s.DB, user.Email, user.Name, token)
+	return utils.SendVerificationEmail(s.Cfg, s.DB, user.Email, user.Name.String, token)
 }
 
 func (s *authService) VerifyEmail(token string, email string) (err error) {
@@ -181,8 +182,8 @@ func (s *authService) VerifyEmail(token string, email string) (err error) {
 	}
 
 	now := time.Now()
-	user.Status = "active"
-	user.EmailVerifiedAt = &now
+	user.Status = null.StringFrom("active")
+	user.EmailVerifiedAt = null.TimeFrom(now)
 
 	return s.userRepo.UpdateUser(user)
 }
@@ -208,15 +209,15 @@ func (s *authService) ForgotPassword(email string) (err error) {
 	}
 
 	now := time.Now()
-	user.ResetPasswordToken = token
+	user.ResetPasswordToken = null.StringFrom(token)
 	expiresAt := now.Add(15 * time.Minute)
-	user.ResetPasswordExpiresAt = &expiresAt
+	user.ResetPasswordExpiresAt = null.TimeFrom(expiresAt)
 
 	if err = s.userRepo.UpdateUser(user); err != nil {
 		return err
 	}
 
-	return utils.SendPasswordResetEmail(s.Cfg, s.DB, user.Email, user.Name, token)
+	return utils.SendPasswordResetEmail(s.Cfg, s.DB, user.Email, user.Name.String, token)
 }
 
 func (s *authService) ResetPassword(input dto.ResetPasswordRequest) (err error) {
@@ -234,7 +235,7 @@ func (s *authService) ResetPassword(input dto.ResetPasswordRequest) (err error) 
 		return errors.New("user not found")
 	}
 
-	if user.ResetPasswordToken.String == "" || user.ResetPasswordToken.String != input.Token {
+	if !user.ResetPasswordToken.Valid || user.ResetPasswordToken.String != input.Token {
 		return errors.New("invalid token")
 	}
 
@@ -248,8 +249,8 @@ func (s *authService) ResetPassword(input dto.ResetPasswordRequest) (err error) 
 	}
 
 	user.PasswordHash = string(hashedPassword)
-	user.ResetPasswordToken = ""
-	user.ResetPasswordExpiresAt = nil
+	user.ResetPasswordToken = null.StringFromPtr(nil)
+	user.ResetPasswordExpiresAt = null.TimeFromPtr(nil)
 
 	return s.userRepo.UpdateUser(user)
 }

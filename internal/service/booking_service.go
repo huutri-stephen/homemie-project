@@ -7,6 +7,7 @@ import (
 	"homemie/internal/repo"
 	"time"
 
+	"github.com/aarondl/null/v8"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -50,8 +51,8 @@ func (s *bookingService) CreateBooking(renterID int64, input dto.CreateBookingRe
 		ListingID:         input.ListingID,
 		RenterID:          renterID,
 		ScheduledTime:     scheduledTime,
-		MessageFromRenter: input.MessageFromRenter,
-		Status:            models.BookingStatusEnumPending,
+		MessageFromRenter: null.StringFrom(input.MessageFromRenter),
+		Status:            null.StringFrom(models.BookingStatusEnumPending),
 	}
 
 	err = s.bookingRepo.Create(booking)
@@ -104,21 +105,21 @@ func (s *bookingService) RespondToBooking(bookingID int64, ownerID int64, req dt
 		return nil, errors.New("listing not found")
 	}
 
-	if listing.OwnerID != ownerID {
+	if listing.OwnerID.Int64 != ownerID {
 		s.logger.Warn("Unauthorized booking response attempt")
 		return nil, errors.New("unauthorized")
 	}
 
-	if booking.Status != models.BookingStatusEnumPending {
-		s.logger.Warn("Booking cannot be responded to", zap.String("status", booking.Status))
+	if booking.Status.String != models.BookingStatusEnumPending {
+		s.logger.Warn("Booking cannot be responded to", zap.String("status", booking.Status.String))
 		return nil, errors.New("booking cannot be responded to")
 	}
 
 	now := time.Now()
-	booking.Status = req.Status
-	booking.ResponseMessageFromOwner = req.ResponseMessage
-	booking.RespondedAt = &now
-	booking.RespondedBy = &ownerID
+	booking.Status = null.StringFrom(req.Status)
+	booking.ResponseMessageFromOwner = null.StringFrom(req.ResponseMessage)
+	booking.RespondedAt = null.TimeFrom(now)
+	booking.RespondedBy = null.Int64From(ownerID)
 
 	err = s.bookingRepo.Update(booking)
 	return
@@ -146,7 +147,7 @@ func (s *bookingService) CancelBooking(bookingID int64, userID int64, userRole s
 		return nil, errors.New("listing not found")
 	}
 
-	isOwner := listing.OwnerID == userID
+	isOwner := listing.OwnerID.Int64 == userID
 	isRenter := booking.RenterID == userID
 
 	if !isOwner && !isRenter {
@@ -154,15 +155,15 @@ func (s *bookingService) CancelBooking(bookingID int64, userID int64, userRole s
 		return nil, errors.New("unauthorized")
 	}
 
-	if booking.Status != models.BookingStatusEnumPending && booking.Status != models.BookingStatusEnumAccepted {
-		s.logger.Warn("Booking cannot be cancelled", zap.String("status", booking.Status))
+	if booking.Status.String != models.BookingStatusEnumPending && booking.Status.String != models.BookingStatusEnumAccepted {
+		s.logger.Warn("Booking cannot be cancelled", zap.String("status", booking.Status.String))
 		return nil, errors.New("booking cannot be cancelled")
 	}
 
 	now := time.Now()
-	booking.Status = models.BookingStatusEnumCancelled
-	booking.RespondedAt = &now
-	booking.RespondedBy = &userID
+	booking.Status = null.StringFrom(models.BookingStatusEnumCancelled)
+	booking.RespondedAt = null.TimeFrom(now)
+	booking.RespondedBy = null.Int64From(userID)
 
 	err = s.bookingRepo.Update(booking)
 	return
@@ -185,7 +186,7 @@ func (s *bookingService) AutoCompleteBookings() {
 	s.logger.Info("Found bookings to auto-complete", zap.Int("count", len(bookings)))
 
 	for _, booking := range bookings {
-		booking.Status = models.BookingStatusEnumCompleted
+		booking.Status = null.StringFrom(models.BookingStatusEnumCompleted)
 		if err := s.bookingRepo.Update(&booking); err != nil {
 			s.logger.Error("Failed to auto-complete booking", zap.Int64("booking_id", booking.ID), zap.Error(err))
 		}

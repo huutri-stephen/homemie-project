@@ -100,14 +100,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		Message: "Login successful",
 		Data: dto.LoginResponse{
 			AccessToken: accessToken,
-			User: dto.UserPayload{
-				ID:       user.ID,
-				Name:     user.Name,
-				Email:    user.Email,
-				Role:     user.Role,
-				UserType: user.UserType,
-				Status:   user.Status,
-			},
+			User:        dto.NewUserPayload(user),
 		},
 	})
 }

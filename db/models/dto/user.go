@@ -1,6 +1,9 @@
 package dto
 
-import "time"
+import (
+	"homemie/db/models"
+	"time"
+)
 
 // Request DTOs
 type SignUpRequest struct {
@@ -73,4 +76,15 @@ type UserPayload struct {
 	Role     string `json:"role"`
 	UserType string `json:"user_type"`
 	Status   string `json:"status"`
+}
+
+func NewUserPayload(user *models.User) UserPayload {
+	return UserPayload{
+		ID:       user.ID,
+		Name:     user.Name.String,
+		Email:    user.Email,
+		Role:     user.Role.String,
+		UserType: user.UserType.String,
+		Status:   user.Status.String,
+	}
 }

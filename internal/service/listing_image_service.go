@@ -5,6 +5,7 @@ import (
 	"homemie/db/models/dto"
 	"homemie/internal/repo"
 
+	"github.com/aarondl/null/v8"
 	"go.uber.org/zap"
 )
 
@@ -27,8 +28,8 @@ func (s *listingImageService) AddListingImages(req dto.AddListingImagesRequest) 
 		listingImages = append(listingImages, models.ListingImage{
 			ListingID: req.ListingID,
 			ImageURL:  image.ImageURL,
-			IsMain:    image.IsMain,
-			SortOrder: image.SortOrder,
+			IsMain:    null.BoolFrom(image.IsMain),
+			SortOrder: null.IntFrom(int(image.SortOrder)),
 		})
 	}
 	return s.repo.AddListingImages(listingImages)

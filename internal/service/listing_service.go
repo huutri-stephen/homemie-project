@@ -9,7 +9,10 @@ import (
 	"homemie/pkg/utils"
 	"time"
 
+	"github.com/aarondl/null/v8"
+	"github.com/aarondl/sqlboiler/v4/types"
 	"github.com/gin-gonic/gin"
+	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 )
 
@@ -47,14 +50,14 @@ func (s *listingService) Create(input dto.CreateListingRequest) (listing *models
 	addr := models.Address{
 		CityID:       input.Address.CityID,
 		WardID:       input.Address.WardID,
-		AreaID:       input.Address.AreaID,
-		Street:       input.Address.Street,
-		HouseNumber:  input.Address.HouseNumber,
-		BuildingName: input.Address.BuildingName,
-		FloorNumber:  input.Address.FloorNumber,
-		RoomNumber:   input.Address.RoomNumber,
-		Latitude:     input.Address.Latitude,
-		Longitude:    input.Address.Longitude,
+		AreaID:       null.Int64FromPtr(input.Address.AreaID),
+		Street:       null.StringFrom(input.Address.Street),
+		HouseNumber:  null.StringFrom(input.Address.HouseNumber),
+		BuildingName: null.StringFrom(input.Address.BuildingName),
+		FloorNumber:  null.IntFrom(int(input.Address.FloorNumber)),
+		RoomNumber:   null.StringFrom(input.Address.RoomNumber),
+		Latitude:     types.NewNullDecimal(decimal.NewFromFloat(input.Address.Latitude).String()),
+		Longitude:    types.NewNullDecimal(decimal.NewFromFloat(input.Address.Longitude).String()),
 	}
 	address, err := s.addressRepo.Create(&addr)
 	if err != nil {
@@ -63,29 +66,29 @@ func (s *listingService) Create(input dto.CreateListingRequest) (listing *models
 	}
 
 	listing = &models.Listing{
-		OwnerID:         input.OwnerID,
+		OwnerID:         null.Int64From(input.OwnerID),
 		Title:           input.Title,
-		Description:     input.Description,
-		PropertyType:    input.PropertyType,
-		IsShared:        input.IsShared,
-		Price:           input.Price,
-		AreaM2:          input.AreaM2,
+		Description:     null.StringFrom(input.Description),
+		PropertyType:    null.StringFrom(input.PropertyType),
+		IsShared:        null.BoolFrom(input.IsShared),
+		Price:           types.NewDecimal(decimal.NewFromFloat(input.Price).String()),
+		AreaM2:          types.NewNullDecimal(decimal.NewFromFloat(input.AreaM2).String()),
 		AddressID:       address.ID,
-		ContactPhone:    input.ContactPhone,
-		ContactEmail:    input.ContactEmail,
-		ContactName:     input.ContactName,
-		NumBedrooms:     input.NumBedrooms,
-		NumBathrooms:    input.NumBathrooms,
-		NumFloors:       input.NumFloors,
-		HasBalcony:      input.HasBalcony,
-		HasParking:      input.HasParking,
-		Amenities:       utils.ConvertStringArrayToJSON(input.Amenities),
-		PetAllowed:      input.PetAllowed,
-		AllowedPetTypes: utils.ConvertStringArrayToJSON(input.AllowedPetTypes),
+		ContactPhone:    null.StringFrom(input.ContactPhone),
+		ContactEmail:    null.StringFrom(input.ContactEmail),
+		ContactName:     null.StringFrom(input.ContactName),
+		NumBedrooms:     null.IntFrom(int(input.NumBedrooms)),
+		NumBathrooms:    null.IntFrom(int(input.NumBathrooms)),
+		NumFloors:       null.IntFrom(int(input.NumFloors)),
+		HasBalcony:      null.BoolFrom(input.HasBalcony),
+		HasParking:      null.BoolFrom(input.HasParking),
+		Amenities:       null.JSONFrom([]byte(utils.ConvertStringArrayToJSON(input.Amenities))),
+		PetAllowed:      null.BoolFrom(input.PetAllowed),
+		AllowedPetTypes: null.JSONFrom([]byte(utils.ConvertStringArrayToJSON(input.AllowedPetTypes))),
 		// Latitude:        input.Latitude,
 		// Longitude:       input.Longitude,
-		ListingType:   input.ListingType,
-		DepositAmount: input.DepositAmount,
+		ListingType:   null.StringFrom(input.ListingType),
+		DepositAmount: types.NewNullDecimal(decimal.NewFromFloat(input.DepositAmount).String()),
 	}
 
 	err = s.listingRepo.Create(listing)
@@ -99,8 +102,8 @@ func (s *listingService) Create(input dto.CreateListingRequest) (listing *models
 		listingImages = append(listingImages, models.ListingImage{
 			ListingID: listing.ID,
 			ImageURL:  image.ImageURL,
-			IsMain:    image.IsMain,
-			SortOrder: image.SortOrder,
+			IsMain:    null.BoolFrom(image.IsMain),
+			SortOrder: null.IntFrom(int(image.SortOrder)),
 		})
 	}
 
@@ -165,13 +168,13 @@ func (s *listingService) Update(id int64, userID int64, input dto.CreateListingR
 	if err != nil {
 		return nil, err
 	}
-	if listing.OwnerID != userID {
+	if listing.OwnerID.Int64 != userID {
 		return nil, errors.New("unauthorized")
 	}
 
 	listing.Title = input.Title
-	listing.Description = input.Description
-	listing.Price = input.Price
+	listing.Description = null.StringFrom(input.Description)
+	listing.Price = types.NewDecimal(decimal.NewFromFloat(input.Price).String())
 	// listing.Address = input.Address
 	// listing.City = input.City
 
@@ -193,7 +196,7 @@ func (s *listingService) Delete(id int64, userID int64) (err error) {
 	if err != nil {
 		return err
 	}
-	if listing.OwnerID != userID {
+	if listing.OwnerID.Int64 != userID {
 		return errors.New("unauthorized")
 	}
 	return s.listingRepo.Delete(listing)

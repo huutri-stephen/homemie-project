@@ -27,7 +27,7 @@ type JWTClaims struct {
 }
 
 // GenerateTokens creates both access and refresh JWTs
-func GenerateTokens(user models.User) (string, string, error) {
+func GenerateTokens(user *models.User) (string, string, error) {
 	accessToken, err := generateAccessToken(user)
 	if err != nil {
 		return "", "", err
@@ -42,12 +42,12 @@ func GenerateTokens(user models.User) (string, string, error) {
 }
 
 // generateAccessToken creates a short-lived access token
-func generateAccessToken(user models.User) (string, error) {
+func generateAccessToken(user *models.User) (string, error) {
 	claims := JWTClaims{
 		UserID:   user.ID,
 		Email:    user.Email,
-		Role:     user.Role,
-		UserType: user.UserType,
+		Role:     user.Role.String,
+		UserType: user.UserType.String,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)), // Access token expires in 15 mins
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -59,7 +59,7 @@ func generateAccessToken(user models.User) (string, error) {
 }
 
 // generateRefreshToken creates a long-lived refresh token
-func generateRefreshToken(user models.User) (string, error) {
+func generateRefreshToken(user *models.User) (string, error) {
 	claims := JWTClaims{
 		UserID: user.ID,
 		Email:  user.Email,
