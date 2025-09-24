@@ -2,8 +2,9 @@ package handler
 
 import (
 	"fmt"
+	"homemie/db/models/dto"
 	"homemie/internal/service"
-	"homemie/models/response"
+
 	"net/http"
 	"path/filepath"
 
@@ -13,11 +14,11 @@ import (
 )
 
 type MediaHandler struct {
-	mediaService service.MediaService
+	mediaService service.IMediaService
 	logger       *zap.Logger
 }
 
-func NewMediaHandler(mediaService service.MediaService, logger *zap.Logger) *MediaHandler {
+func NewMediaHandler(mediaService service.IMediaService, logger *zap.Logger) *MediaHandler {
 	return &MediaHandler{
 		mediaService: mediaService,
 		logger:       logger,
@@ -48,7 +49,7 @@ func (h *MediaHandler) GeneratePresignedUploadURL(c *gin.Context) {
 func (h *MediaHandler) UploadFiles(c *gin.Context) {
 	form, err := c.MultipartForm()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.BaseResponse{
+		c.JSON(http.StatusBadRequest, dto.BaseResponse{
 			Success: false,
 			Error:   "Invalid form data",
 		})
@@ -57,7 +58,7 @@ func (h *MediaHandler) UploadFiles(c *gin.Context) {
 
 	files := form.File["files"]
 	if len(files) == 0 {
-		c.JSON(http.StatusBadRequest, response.BaseResponse{
+		c.JSON(http.StatusBadRequest, dto.BaseResponse{
 			Success: false,
 			Error:   "Files are required",
 		})
@@ -66,7 +67,7 @@ func (h *MediaHandler) UploadFiles(c *gin.Context) {
 
 	bucketName := c.PostForm("bucketName")
 	if bucketName == "" {
-		c.JSON(http.StatusBadRequest, response.BaseResponse{
+		c.JSON(http.StatusBadRequest, dto.BaseResponse{
 			Success: false,
 			Error:   "Bucket name is required",
 		})
@@ -75,7 +76,7 @@ func (h *MediaHandler) UploadFiles(c *gin.Context) {
 
 	err = h.mediaService.CheckBucketName(bucketName)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, response.BaseResponse{
+		c.JSON(http.StatusInternalServerError, dto.BaseResponse{
 			Success: false,
 			Error:   fmt.Sprintf("Bucket %s does not exist", bucketName),
 		})
@@ -88,7 +89,7 @@ func (h *MediaHandler) UploadFiles(c *gin.Context) {
 		objectName := uuid.New().String() + ext
 		fileContent, err := file.Open()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, response.BaseResponse{
+			c.JSON(http.StatusInternalServerError, dto.BaseResponse{
 				Success: false,
 				Error:   "Failed to open file",
 			})
@@ -98,7 +99,7 @@ func (h *MediaHandler) UploadFiles(c *gin.Context) {
 
 		url, err := h.mediaService.UploadFile(bucketName, objectName, fileContent, file.Size)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, response.BaseResponse{
+			c.JSON(http.StatusInternalServerError, dto.BaseResponse{
 				Success: false,
 				Error:   "Failed to upload file",
 			})
@@ -107,9 +108,9 @@ func (h *MediaHandler) UploadFiles(c *gin.Context) {
 		urls = append(urls, url)
 	}
 
-	c.JSON(http.StatusOK, response.BaseResponse{
+	c.JSON(http.StatusOK, dto.BaseResponse{
 		Success: true,
-		Data: response.MediaResponse{
+		Data: dto.MediaResponse{
 			Urls: urls,
 		},
 	})

@@ -1,9 +1,8 @@
 package handler
 
 import (
+	"homemie/db/models/dto"
 	"homemie/internal/service"
-	"homemie/models/request"
-	"homemie/models/response"
 	"net/http"
 	"strconv"
 
@@ -12,11 +11,11 @@ import (
 )
 
 type BookingHandler struct {
-	svc    *service.BookingService
+	svc    service.IBookingService
 	logger *zap.Logger
 }
 
-func NewBookingHandler(svc *service.BookingService, logger *zap.Logger) *BookingHandler {
+func NewBookingHandler(svc service.IBookingService, logger *zap.Logger) *BookingHandler {
 	return &BookingHandler{svc, logger}
 }
 
@@ -31,10 +30,10 @@ func (h *BookingHandler) getLogger(c *gin.Context) *zap.Logger {
 
 func (h *BookingHandler) CreateBooking(c *gin.Context) {
 	logger := h.getLogger(c)
-	var req request.CreateBookingRequest
+	var req dto.CreateBookingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		logger.Error("Failed to bind create booking request", zap.Error(err))
-		c.JSON(http.StatusBadRequest, response.BaseResponse{
+		c.JSON(http.StatusBadRequest, dto.BaseResponse{
 			Success: false,
 			Error:   err.Error(),
 		})
@@ -47,7 +46,7 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 
 	if err != nil {
 		logger.Error("Failed to create booking", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, response.BaseResponse{
+		c.JSON(http.StatusInternalServerError, dto.BaseResponse{
 			Success: false,
 			Error:   "Create booking failed",
 		})
@@ -55,7 +54,7 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 	}
 
 	logger.Info("Successfully created booking", zap.Int64("booking_id", booking.ID))
-	c.JSON(http.StatusCreated, response.BaseResponse{Success: true, Data: booking})
+	c.JSON(http.StatusCreated, dto.BaseResponse{Success: true, Data: booking})
 }
 
 func (h *BookingHandler) GetMyBookings(c *gin.Context) {
@@ -66,7 +65,7 @@ func (h *BookingHandler) GetMyBookings(c *gin.Context) {
 	bookings, err := h.svc.GetMyBookings(userID)
 	if err != nil {
 		logger.Error("Failed to get my bookings", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, response.BaseResponse{
+		c.JSON(http.StatusInternalServerError, dto.BaseResponse{
 			Success: false,
 			Error:   "Can not fetch data",
 		})
@@ -74,7 +73,7 @@ func (h *BookingHandler) GetMyBookings(c *gin.Context) {
 	}
 
 	logger.Info("Successfully retrieved my bookings")
-	c.JSON(http.StatusOK, response.BaseResponse{Success: true, Data: bookings})
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Data: bookings})
 }
 
 func (h *BookingHandler) GetOwnerBookings(c *gin.Context) {
@@ -85,7 +84,7 @@ func (h *BookingHandler) GetOwnerBookings(c *gin.Context) {
 	bookings, err := h.svc.GetOwnerBookings(userID)
 	if err != nil {
 		logger.Error("Failed to get owner bookings", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, response.BaseResponse{
+		c.JSON(http.StatusInternalServerError, dto.BaseResponse{
 			Success: false,
 			Error:   "Can not fetch data",
 		})
@@ -93,7 +92,7 @@ func (h *BookingHandler) GetOwnerBookings(c *gin.Context) {
 	}
 
 	logger.Info("Successfully retrieved owner bookings")
-	c.JSON(http.StatusOK, response.BaseResponse{Success: true, Data: bookings})
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Data: bookings})
 }
 
 func (h *BookingHandler) RespondToBooking(c *gin.Context) {
@@ -101,14 +100,14 @@ func (h *BookingHandler) RespondToBooking(c *gin.Context) {
 	bookingID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		logger.Error("Invalid booking ID format", zap.Error(err))
-		c.JSON(http.StatusBadRequest, response.BaseResponse{Success: false, Error: "Invalid booking ID"})
+		c.JSON(http.StatusBadRequest, dto.BaseResponse{Success: false, Error: "Invalid booking ID"})
 		return
 	}
 
-	var req request.RespondBookingRequest
+	var req dto.RespondBookingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		logger.Error("Failed to bind respond booking request", zap.Error(err))
-		c.JSON(http.StatusBadRequest, response.BaseResponse{Success: false, Error: err.Error()})
+		c.JSON(http.StatusBadRequest, dto.BaseResponse{Success: false, Error: err.Error()})
 		return
 	}
 
@@ -125,12 +124,12 @@ func (h *BookingHandler) RespondToBooking(c *gin.Context) {
 		} else if err.Error() == "booking cannot be responded to" {
 			status = http.StatusBadRequest
 		}
-		c.JSON(status, response.BaseResponse{Success: false, Error: err.Error()})
+		c.JSON(status, dto.BaseResponse{Success: false, Error: err.Error()})
 		return
 	}
 
 	logger.Info("Successfully responded to booking", zap.Int64("booking_id", bookingID))
-	c.JSON(http.StatusOK, response.BaseResponse{Success: true, Data: booking})
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Data: booking})
 }
 
 func (h *BookingHandler) CancelBooking(c *gin.Context) {
@@ -138,7 +137,7 @@ func (h *BookingHandler) CancelBooking(c *gin.Context) {
 	bookingID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		logger.Error("Invalid booking ID format", zap.Error(err))
-		c.JSON(http.StatusBadRequest, response.BaseResponse{Success: false, Error: "Invalid booking ID"})
+		c.JSON(http.StatusBadRequest, dto.BaseResponse{Success: false, Error: "Invalid booking ID"})
 		return
 	}
 
@@ -157,10 +156,10 @@ func (h *BookingHandler) CancelBooking(c *gin.Context) {
 		} else if err.Error() == "booking cannot be cancelled" {
 			status = http.StatusBadRequest
 		}
-		c.JSON(status, response.BaseResponse{Success: false, Error: err.Error()})
+		c.JSON(status, dto.BaseResponse{Success: false, Error: err.Error()})
 		return
 	}
 
 	logger.Info("Successfully cancelled booking", zap.Int64("booking_id", bookingID))
-	c.JSON(http.StatusOK, response.BaseResponse{Success: true, Data: booking})
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Data: booking})
 }

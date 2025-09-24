@@ -3,7 +3,7 @@ package main
 import (
 	"homemie/config"
 	"homemie/internal"
-	"homemie/internal/infra"
+	"homemie/pkg/infra"
 	"homemie/pkg/logger"
 )
 

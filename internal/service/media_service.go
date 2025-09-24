@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type MediaService interface {
+type IMediaService interface {
 	GeneratePresignedUploadURL(bucketName, objectKey string) (string, error)
 	UploadFile(bucketName, objectKey string, file io.Reader, size int64) (string, error)
 	CheckBucketName(bucketName string) error
@@ -23,12 +23,9 @@ type mediaService struct {
 	externalEndpoint string
 }
 
-func NewMediaService(s3Client *s3.Client, logger *zap.Logger, externalEndpoint string) MediaService {
+func NewMediaService(s3Client *s3.Client, logger *zap.Logger, externalEndpoint string) IMediaService {
 	return &mediaService{
-		s3Client:       s3Client,
-		logger:         logger,
-		externalEndpoint: externalEndpoint,
-	}
+		s3Client: s3Client, logger: logger, externalEndpoint: externalEndpoint}
 }
 
 func (s *mediaService) GeneratePresignedUploadURL(bucketName, objectKey string) (string, error) {

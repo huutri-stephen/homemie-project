@@ -7,30 +7,40 @@ import (
 	"strings"
 	"time"
 
+	"homemie/config"
+	"homemie/db/models"
+	"homemie/db/models/dto"
+	"homemie/internal/repo"
+	"homemie/pkg/utils"
+
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-	"homemie/config"
-	"homemie/internal/domain"
-	"homemie/models/dto"
-	"homemie/models/request"
-	"homemie/pkg/utils"
 )
 
-type AuthService struct {
-	authRepo   domain.AuthRepository
-	userRepo   domain.UserRepository
-	Cfg    config.Config
-	DB     *gorm.DB
-	logger *zap.Logger
+type IAuthService interface {
+	SignUp(input dto.SignUpRequest) error
+	Login(input dto.LoginRequest) (accessToken string, refreshToken string, user *models.User, err error)
+	SendVerificationEmail(email string) error
+	VerifyEmail(token string, email string) error
+	ForgotPassword(email string) error
+	ResetPassword(input dto.ResetPasswordRequest) error
 }
 
-func NewAuthService(authRepo domain.AuthRepository, userRepo domain.UserRepository, cfg config.Config, db *gorm.DB, logger *zap.Logger) *AuthService {
-	return &AuthService{authRepo: authRepo, userRepo: userRepo,Cfg: cfg, DB: db, logger: logger}
+type authService struct {
+	authRepo repo.IAuthRepository
+	userRepo repo.IUserRepository
+	Cfg      config.Config
+	DB       *gorm.DB
+	logger   *zap.Logger
 }
 
-func (s *AuthService) SignUp(input request.SignUpRequest) (err error) {
+func NewAuthService(authRepo repo.IAuthRepository, userRepo repo.IUserRepository, cfg config.Config, db *gorm.DB, logger *zap.Logger) IAuthService {
+	return &authService{authRepo: authRepo, userRepo: userRepo, Cfg: cfg, DB: db, logger: logger}
+}
+
+func (s *authService) SignUp(input dto.SignUpRequest) (err error) {
 	defer func(start time.Time) {
 		s.logger.Info("Sign up",
 			zap.String("function", "SignUp"),
@@ -53,7 +63,7 @@ func (s *AuthService) SignUp(input request.SignUpRequest) (err error) {
 		}
 	}
 
-	user := &dto.User{
+	user := &models.User{
 		FirstName:             input.FirstName,
 		LastName:              input.LastName,
 		Name:                  input.Name,
@@ -76,7 +86,7 @@ func (s *AuthService) SignUp(input request.SignUpRequest) (err error) {
 	return s.userRepo.CreateUser(user)
 }
 
-func (s *AuthService) Login(input request.LoginRequest) (accessToken string, refreshToken string, user *dto.User, err error) {
+func (s *authService) Login(input dto.LoginRequest) (accessToken string, refreshToken string, user *models.User, err error) {
 	defer func(start time.Time) {
 		s.logger.Info("Login",
 			zap.String("function", "Login"),
@@ -107,7 +117,7 @@ func (s *AuthService) Login(input request.LoginRequest) (accessToken string, ref
 	return
 }
 
-func (s *AuthService) SendVerificationEmail(email string) (err error) {
+func (s *authService) SendVerificationEmail(email string) (err error) {
 	defer func(start time.Time) {
 		s.logger.Info("Send verification email",
 			zap.String("function", "SendVerificationEmail"),
@@ -127,9 +137,9 @@ func (s *AuthService) SendVerificationEmail(email string) (err error) {
 		return err
 	}
 
-	t := &dto.Token{
+	t := &models.Token{
 		UserID:    user.ID,
-		TokenType: dto.EmailVerification,
+		TokenType: models.TokenTypeEnumEmailVerification,
 		Token:     token,
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
@@ -141,7 +151,7 @@ func (s *AuthService) SendVerificationEmail(email string) (err error) {
 	return utils.SendVerificationEmail(s.Cfg, s.DB, user.Email, user.Name, token)
 }
 
-func (s *AuthService) VerifyEmail(token string, email string) (err error) {
+func (s *authService) VerifyEmail(token string, email string) (err error) {
 	defer func(start time.Time) {
 		s.logger.Info("Verify email",
 			zap.String("function", "VerifyEmail"),
@@ -156,7 +166,7 @@ func (s *AuthService) VerifyEmail(token string, email string) (err error) {
 		return errors.New("user not found")
 	}
 
-	t, err := s.authRepo.GetToken(token, user.ID, dto.EmailVerification)
+	t, err := s.authRepo.GetToken(token, user.ID, models.TokenTypeEnumEmailVerification)
 	if err != nil {
 		return errors.New("invalid token")
 	}
@@ -177,7 +187,7 @@ func (s *AuthService) VerifyEmail(token string, email string) (err error) {
 	return s.userRepo.UpdateUser(user)
 }
 
-func (s *AuthService) ForgotPassword(email string) (err error) {
+func (s *authService) ForgotPassword(email string) (err error) {
 	defer func(start time.Time) {
 		s.logger.Info("Forgot password",
 			zap.String("function", "ForgotPassword"),
@@ -198,9 +208,9 @@ func (s *AuthService) ForgotPassword(email string) (err error) {
 	}
 
 	now := time.Now()
-	user.PasswordResetToken = token
+	user.ResetPasswordToken = token
 	expiresAt := now.Add(15 * time.Minute)
-	user.PasswordResetExpiresAt = &expiresAt
+	user.ResetPasswordExpiresAt = &expiresAt
 
 	if err = s.userRepo.UpdateUser(user); err != nil {
 		return err
@@ -209,7 +219,7 @@ func (s *AuthService) ForgotPassword(email string) (err error) {
 	return utils.SendPasswordResetEmail(s.Cfg, s.DB, user.Email, user.Name, token)
 }
 
-func (s *AuthService) ResetPassword(input request.ResetPasswordRequest) (err error) {
+func (s *authService) ResetPassword(input dto.ResetPasswordRequest) (err error) {
 	defer func(start time.Time) {
 		s.logger.Info("Reset password",
 			zap.String("function", "ResetPassword"),
@@ -224,11 +234,11 @@ func (s *AuthService) ResetPassword(input request.ResetPasswordRequest) (err err
 		return errors.New("user not found")
 	}
 
-	if user.PasswordResetToken == "" || user.PasswordResetToken != input.Token {
+	if user.ResetPasswordToken.String == "" || user.ResetPasswordToken.String != input.Token {
 		return errors.New("invalid token")
 	}
 
-	if user.PasswordResetExpiresAt.Before(time.Now()) {
+	if user.ResetPasswordExpiresAt.Time.Before(time.Now()) {
 		return errors.New("token expired")
 	}
 
@@ -238,8 +248,8 @@ func (s *AuthService) ResetPassword(input request.ResetPasswordRequest) (err err
 	}
 
 	user.PasswordHash = string(hashedPassword)
-	user.PasswordResetToken = ""
-	user.PasswordResetExpiresAt = nil
+	user.ResetPasswordToken = ""
+	user.ResetPasswordExpiresAt = nil
 
 	return s.userRepo.UpdateUser(user)
 }

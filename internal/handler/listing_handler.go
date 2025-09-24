@@ -1,10 +1,8 @@
 package handler
 
 import (
+	"homemie/db/models/dto"
 	"homemie/internal/service"
-	"homemie/models/dto"
-	"homemie/models/request"
-	"homemie/models/response"
 	"net/http"
 	"strconv"
 
@@ -13,11 +11,11 @@ import (
 )
 
 type ListingHandler struct {
-	svc    *service.ListingService
+	svc    service.IListingService
 	logger *zap.Logger
 }
 
-func NewListingHandler(svc *service.ListingService, logger *zap.Logger) *ListingHandler {
+func NewListingHandler(svc service.IListingService, logger *zap.Logger) *ListingHandler {
 	return &ListingHandler{svc, logger}
 }
 
@@ -32,10 +30,10 @@ func (h *ListingHandler) getLogger(c *gin.Context) *zap.Logger {
 
 func (h *ListingHandler) Create(c *gin.Context) {
 	logger := h.getLogger(c)
-	var req request.CreateListingRequest
+	var req dto.CreateListingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		logger.Error("Failed to bind create listing request", zap.Error(err))
-		c.JSON(http.StatusBadRequest, response.BaseResponse{
+		c.JSON(http.StatusBadRequest, dto.BaseResponse{
 			Success: false,
 			Error:   err.Error(),
 		})
@@ -50,7 +48,7 @@ func (h *ListingHandler) Create(c *gin.Context) {
 
 	if err != nil {
 		logger.Error("Failed to create listing", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, response.BaseResponse{
+		c.JSON(http.StatusInternalServerError, dto.BaseResponse{
 			Success: false,
 			Error:   "Create listing failed",
 		})
@@ -58,7 +56,7 @@ func (h *ListingHandler) Create(c *gin.Context) {
 	}
 
 	logger.Info("Successfully created listing", zap.Int64("listing_id", listing.ID))
-	c.JSON(http.StatusCreated, response.BaseResponse{Success: true, Data: listing})
+	c.JSON(http.StatusCreated, dto.BaseResponse{Success: true, Data: listing})
 }
 
 func (h *ListingHandler) SearchAndFilter(c *gin.Context) {
@@ -66,7 +64,7 @@ func (h *ListingHandler) SearchAndFilter(c *gin.Context) {
 	var filter dto.SearchFilterListing
 	if err := c.ShouldBindQuery(&filter); err != nil {
 		logger.Error("Failed to bind search and filter query", zap.Error(err))
-		c.JSON(http.StatusBadRequest, response.BaseResponse{
+		c.JSON(http.StatusBadRequest, dto.BaseResponse{
 			Success: false,
 			Error:   err.Error(),
 		})
@@ -77,7 +75,7 @@ func (h *ListingHandler) SearchAndFilter(c *gin.Context) {
 	listings, pagination, err := h.svc.SearchAndFilter(&filter)
 	if err != nil {
 		logger.Error("Failed to search and filter listings", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, response.BaseResponse{
+		c.JSON(http.StatusInternalServerError, dto.BaseResponse{
 			Success: false,
 			Error:   "Get list failed",
 		})
@@ -85,7 +83,7 @@ func (h *ListingHandler) SearchAndFilter(c *gin.Context) {
 	}
 
 	logger.Info("Successfully retrieved listings")
-	c.JSON(http.StatusOK, response.BaseResponse{Success: true, Data: gin.H{
+	c.JSON(http.StatusOK, dto.BaseResponse{Success: true, Data: gin.H{
 		"listings":   listings,
 		"pagination": pagination,
 	}})
@@ -97,7 +95,7 @@ func (h *ListingHandler) GetByID(c *gin.Context) {
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		logger.Error("Invalid listing ID format", zap.Error(err))
-		c.JSON(http.StatusBadRequest, response.BaseResponse{Success: false, Error: "Invalid ID format"})
+		c.JSON(http.StatusBadRequest, dto.BaseResponse{Success: false, Error: "Invalid ID format"})
 		return
 	}
 
@@ -105,7 +103,7 @@ func (h *ListingHandler) GetByID(c *gin.Context) {
 	listing, err := h.svc.GetByID(id)
 	if err != nil {
 		logger.Error("Failed to get listing by ID", zap.Error(err), zap.Int64("id", id))
-		c.JSON(http.StatusNotFound, response.BaseResponse{
+		c.JSON(http.StatusNotFound, dto.BaseResponse{
 			Success: false,
 			Error:   "Not found",
 		})
@@ -113,7 +111,7 @@ func (h *ListingHandler) GetByID(c *gin.Context) {
 	}
 
 	logger.Info("Successfully retrieved listing by ID", zap.Int64("id", id))
-	c.JSON(http.StatusOK, response.BaseResponse{
+	c.JSON(http.StatusOK, dto.BaseResponse{
 		Success: true,
 		Data:    listing,
 	})
@@ -125,16 +123,16 @@ func (h *ListingHandler) Update(c *gin.Context) {
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		logger.Error("Invalid listing ID format", zap.Error(err))
-		c.JSON(http.StatusBadRequest, response.BaseResponse{Success: false, Error: "Invalid ID format"})
+		c.JSON(http.StatusBadRequest, dto.BaseResponse{Success: false, Error: "Invalid ID format"})
 		return
 	}
 
 	userID := c.GetInt64("user_id")
 
-	var req request.CreateListingRequest
+	var req dto.CreateListingRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		logger.Error("Failed to bind update listing request", zap.Error(err))
-		c.JSON(http.StatusBadRequest, response.BaseResponse{
+		c.JSON(http.StatusBadRequest, dto.BaseResponse{
 			Success: false,
 			Error:   err.Error(),
 		})
@@ -146,12 +144,12 @@ func (h *ListingHandler) Update(c *gin.Context) {
 	if err != nil {
 		logger.Error("Failed to update listing", zap.Error(err), zap.Int64("id", id))
 		if err.Error() == "unauthorized" {
-			c.JSON(http.StatusForbidden, response.BaseResponse{
+			c.JSON(http.StatusForbidden, dto.BaseResponse{
 				Success: false,
 				Error:   "Unauthorized to edit this listing",
 			})
 		} else {
-			c.JSON(http.StatusInternalServerError, response.BaseResponse{
+			c.JSON(http.StatusInternalServerError, dto.BaseResponse{
 				Success: false,
 				Error:   "Update failed",
 			})
@@ -160,7 +158,7 @@ func (h *ListingHandler) Update(c *gin.Context) {
 	}
 
 	logger.Info("Successfully updated listing", zap.Int64("id", id))
-	c.JSON(http.StatusOK, response.BaseResponse{
+	c.JSON(http.StatusOK, dto.BaseResponse{
 		Success: true,
 		Data:    listing,
 	})
@@ -172,7 +170,7 @@ func (h *ListingHandler) Delete(c *gin.Context) {
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		logger.Error("Invalid listing ID format", zap.Error(err))
-		c.JSON(http.StatusBadRequest, response.BaseResponse{Success: false, Error: "Invalid ID format"})
+		c.JSON(http.StatusBadRequest, dto.BaseResponse{Success: false, Error: "Invalid ID format"})
 		return
 	}
 
@@ -183,12 +181,12 @@ func (h *ListingHandler) Delete(c *gin.Context) {
 	if err != nil {
 		logger.Error("Failed to delete listing", zap.Error(err), zap.Int64("id", id))
 		if err.Error() == "unauthorized" {
-			c.JSON(http.StatusForbidden, response.BaseResponse{
+			c.JSON(http.StatusForbidden, dto.BaseResponse{
 				Success: false,
 				Error:   "Unauthorized to delete this listing",
 			})
 		} else {
-			c.JSON(http.StatusInternalServerError, response.BaseResponse{
+			c.JSON(http.StatusInternalServerError, dto.BaseResponse{
 				Success: false,
 				Error:   "Delete failed",
 			})
@@ -197,7 +195,7 @@ func (h *ListingHandler) Delete(c *gin.Context) {
 	}
 
 	logger.Info("Successfully deleted listing", zap.Int64("id", id))
-	c.JSON(http.StatusOK, response.BaseResponse{
+	c.JSON(http.StatusOK, dto.BaseResponse{
 		Success: true,
 		Message: "Delete listing successfully",
 	})

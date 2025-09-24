@@ -2,9 +2,10 @@ package service
 
 import (
 	"errors"
-	"homemie/internal/domain"
-	"homemie/models/dto"
-	"homemie/models/request"
+	"homemie/db/models"
+	"homemie/db/models/dto"
+	"homemie/internal/repo"
+
 	"homemie/pkg/utils"
 	"time"
 
@@ -12,18 +13,27 @@ import (
 	"go.uber.org/zap"
 )
 
-type ListingService struct {
-	repo             domain.ListingRepository
-	addressRepo      domain.AddressRepository
-	listingImageRepo domain.ListingImageRepository
+type IListingService interface {
+	Create(input dto.CreateListingRequest) (*models.Listing, error)
+	GetAll() ([]models.Listing, error)
+	SearchAndFilter(filter *dto.SearchFilterListing) ([]models.Listing, *dto.Pagination, error)
+	GetByID(id int64) (*models.Listing, error)
+	Update(id int64, userID int64, input dto.CreateListingRequest) (*models.Listing, error)
+	Delete(id int64, userID int64) error
+}
+
+type listingService struct {
+	listingRepo      repo.IListingRepository
+	addressRepo      repo.IAddressRepository
+	listingImageRepo repo.IListingImageRepository
 	logger           *zap.Logger
 }
 
-func NewListingService(repo domain.ListingRepository, addressRepo domain.AddressRepository, listingImageRepo domain.ListingImageRepository, logger *zap.Logger) *ListingService {
-	return &ListingService{repo, addressRepo, listingImageRepo, logger}
+func NewListingService(listingRepo repo.IListingRepository, addressRepo repo.IAddressRepository, listingImageRepo repo.IListingImageRepository, logger *zap.Logger) IListingService {
+	return &listingService{listingRepo: listingRepo, addressRepo: addressRepo, listingImageRepo: listingImageRepo, logger: logger}
 }
 
-func (s *ListingService) Create(input request.CreateListingRequest) (listing *dto.Listing, err error) {
+func (s *listingService) Create(input dto.CreateListingRequest) (listing *models.Listing, err error) {
 	defer func(start time.Time) {
 		s.logger.Info("Create listing",
 			zap.String("function", "Create"),
@@ -34,7 +44,7 @@ func (s *ListingService) Create(input request.CreateListingRequest) (listing *dt
 	}(time.Now())
 
 	// todo: find current addrest if address exist
-	addr := dto.Address{
+	addr := models.Address{
 		CityID:       input.Address.CityID,
 		WardID:       input.Address.WardID,
 		AreaID:       input.Address.AreaID,
@@ -52,7 +62,7 @@ func (s *ListingService) Create(input request.CreateListingRequest) (listing *dt
 		return nil, err
 	}
 
-	listing = &dto.Listing{
+	listing = &models.Listing{
 		OwnerID:         input.OwnerID,
 		Title:           input.Title,
 		Description:     input.Description,
@@ -78,15 +88,15 @@ func (s *ListingService) Create(input request.CreateListingRequest) (listing *dt
 		DepositAmount: input.DepositAmount,
 	}
 
-	err = s.repo.Create(listing)
+	err = s.listingRepo.Create(listing)
 	if err != nil {
 		s.logger.Error("Failed to create listing", zap.Error(err))
 		return nil, err
 	}
 
-	var listingImages []dto.ListingImage
+	var listingImages []models.ListingImage
 	for _, image := range input.Images {
-		listingImages = append(listingImages, dto.ListingImage{
+		listingImages = append(listingImages, models.ListingImage{
 			ListingID: listing.ID,
 			ImageURL:  image.ImageURL,
 			IsMain:    image.IsMain,
@@ -106,7 +116,7 @@ func (s *ListingService) Create(input request.CreateListingRequest) (listing *dt
 	return listing, err
 }
 
-func (s *ListingService) GetAll() (listings []dto.Listing, err error) {
+func (s *listingService) GetAll() (listings []models.Listing, err error) {
 	defer func(start time.Time) {
 		s.logger.Info("Get all listings",
 			zap.String("function", "GetAll"),
@@ -114,10 +124,10 @@ func (s *ListingService) GetAll() (listings []dto.Listing, err error) {
 			zap.Error(err),
 		)
 	}(time.Now())
-	return s.repo.FindAll()
+	return s.listingRepo.FindAll()
 }
 
-func (s *ListingService) SearchAndFilter(filter *dto.SearchFilterListing) (listings []dto.Listing, pagination *dto.Pagination, err error) {
+func (s *listingService) SearchAndFilter(filter *dto.SearchFilterListing) (listings []models.Listing, pagination *dto.Pagination, err error) {
 	defer func(start time.Time) {
 		s.logger.Info("Search and filter listings",
 			zap.String("function", "SearchAndFilter"),
@@ -126,10 +136,10 @@ func (s *ListingService) SearchAndFilter(filter *dto.SearchFilterListing) (listi
 			zap.Error(err),
 		)
 	}(time.Now())
-	return s.repo.SearchAndFilter(filter)
+	return s.listingRepo.SearchAndFilter(filter)
 }
 
-func (s *ListingService) GetByID(id int64) (listing *dto.Listing, err error) {
+func (s *listingService) GetByID(id int64) (listing *models.Listing, err error) {
 	defer func(start time.Time) {
 		s.logger.Info("Get listing by ID",
 			zap.String("function", "GetByID"),
@@ -138,10 +148,10 @@ func (s *ListingService) GetByID(id int64) (listing *dto.Listing, err error) {
 			zap.Error(err),
 		)
 	}(time.Now())
-	return s.repo.FindByID(id)
+	return s.listingRepo.FindByID(id)
 }
 
-func (s *ListingService) Update(id int64, userID int64, input request.CreateListingRequest) (listing *dto.Listing, err error) {
+func (s *listingService) Update(id int64, userID int64, input dto.CreateListingRequest) (listing *models.Listing, err error) {
 	defer func(start time.Time) {
 		s.logger.Info("Update listing",
 			zap.String("function", "Update"),
@@ -151,7 +161,7 @@ func (s *ListingService) Update(id int64, userID int64, input request.CreateList
 		)
 	}(time.Now())
 
-	listing, err = s.repo.FindByID(id)
+	listing, err = s.listingRepo.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -165,11 +175,11 @@ func (s *ListingService) Update(id int64, userID int64, input request.CreateList
 	// listing.Address = input.Address
 	// listing.City = input.City
 
-	err = s.repo.Update(listing)
+	err = s.listingRepo.Update(listing)
 	return listing, err
 }
 
-func (s *ListingService) Delete(id int64, userID int64) (err error) {
+func (s *listingService) Delete(id int64, userID int64) (err error) {
 	defer func(start time.Time) {
 		s.logger.Info("Delete listing",
 			zap.String("function", "Delete"),
@@ -179,12 +189,12 @@ func (s *ListingService) Delete(id int64, userID int64) (err error) {
 		)
 	}(time.Now())
 
-	listing, err := s.repo.FindByID(id)
+	listing, err := s.listingRepo.FindByID(id)
 	if err != nil {
 		return err
 	}
 	if listing.OwnerID != userID {
 		return errors.New("unauthorized")
 	}
-	return s.repo.Delete(listing)
+	return s.listingRepo.Delete(listing)
 }

@@ -1,4 +1,4 @@
-package request
+package dto
 
 type CreateBookingRequest struct {
 	ListingID         int64  `json:"listing_id" binding:"required"`

@@ -55,8 +55,6 @@ CREATE TYPE token_type_enum AS ENUM('email_verification', 'password_reset');
 --
 CREATE TABLE users (
     id                     BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    first_name             VARCHAR(50),
-    last_name              VARCHAR(50),
     name                   VARCHAR(100),
     email                  VARCHAR(100) NOT NULL,
     phone                  VARCHAR(20),
@@ -123,8 +121,8 @@ CREATE TABLE addresses (
     building_name   VARCHAR(100),
     floor_number    INT,
     room_number     VARCHAR(20),
-    latitude        DECIMAL(12,8), -- update 10,8 to 12,8
-    longitude       DECIMAL(12,8), -- update 10,8 to 12,8
+    latitude        DECIMAL(12,8),
+    longitude       DECIMAL(12,8),
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (city_id) REFERENCES address_locations(id),
@@ -154,11 +152,9 @@ CREATE TABLE listings (
     num_floors        INT,
     has_balcony       BOOLEAN DEFAULT FALSE,
     has_parking       BOOLEAN DEFAULT FALSE,
-    amenities         JSON,
+    amenities         JSONB,
     pet_allowed       BOOLEAN DEFAULT FALSE,
-    allowed_pet_types JSON,
-    -- latitude          DECIMAL(10,8), -- REMOVE IGNORE
-    -- longitude         DECIMAL(10,8), -- REMOVE IGNORE
+    allowed_pet_types JSONB,
     listing_type      listing_type_enum DEFAULT 'for_rent',
     deposit_amount    DECIMAL(15,2),
     status            listing_status_enum DEFAULT 'pending',
@@ -167,9 +163,20 @@ CREATE TABLE listings (
     created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     published_at      TIMESTAMP,
-    expires_at        TIMESTAMP
+    expires_at        TIMESTAMP,
+    -- full text search
+    search_vector     tsvector
 );
 CREATE TRIGGER set_timestamp_listings BEFORE UPDATE ON listings FOR EACH ROW EXECUTE PROCEDURE trigger_set_timestamp();
+CREATE FUNCTION listings_search_trigger() RETURNS trigger AS $$
+BEGIN
+  NEW.search_vector :=
+    to_tsvector('simple', coalesce(NEW.title,'') || ' ' || coalesce(NEW.description,''));
+  RETURN NEW;
+END
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER tsvectorupdate BEFORE INSERT OR UPDATE ON listings FOR EACH ROW EXECUTE FUNCTION listings_search_trigger();
+CREATE INDEX idx_listings_search_vector ON listings USING gin(search_vector);
 
 --
 -- Table structure for table `listing_images`
@@ -177,7 +184,7 @@ CREATE TRIGGER set_timestamp_listings BEFORE UPDATE ON listings FOR EACH ROW EXE
 CREATE TABLE listing_images (
     id            BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     listing_id    BIGINT NOT NULL,
-    image_url     VARCHAR(500) NOT NULL, -- update 255 to 500
+    image_url     VARCHAR(100) NOT NULL,
     is_main       BOOLEAN DEFAULT FALSE,
     sort_order    INT DEFAULT 0,
     created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

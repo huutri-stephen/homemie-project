@@ -1,8 +1,7 @@
-package repository
+package repo
 
 import (
-	"homemie/internal/domain"
-	"homemie/models/dto"
+	"homemie/db/models"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -10,16 +9,22 @@ import (
 	"gorm.io/gorm"
 )
 
+type IAuthRepository interface {
+	CreateToken(token *models.Token) error
+	GetToken(token string, userID int64, tokenType string) (*models.Token, error)
+	DeleteToken(token *models.Token) error
+}
+
 type authRepo struct {
 	db     *gorm.DB
 	logger *zap.Logger
 }
 
-func NewAuthRepo(db *gorm.DB, logger *zap.Logger) domain.AuthRepository {
+func NewAuthRepo(db *gorm.DB, logger *zap.Logger) IAuthRepository {
 	return &authRepo{db: db, logger: logger}
 }
 
-func (r *authRepo) CreateToken(token *dto.Token) (err error) {
+func (r *authRepo) CreateToken(token *models.Token) (err error) {
 	defer func(start time.Time) {
 		r.logger.Info("Create token",
 			zap.String("function", "CreateToken"),
@@ -31,7 +36,7 @@ func (r *authRepo) CreateToken(token *dto.Token) (err error) {
 	return r.db.Create(token).Error
 }
 
-func (r *authRepo) GetToken(token string, userID int64, tokenType dto.TokenType) (t *dto.Token, err error) {
+func (r *authRepo) GetToken(token string, userID int64, tokenType string) (t *models.Token, err error) {
 	defer func(start time.Time) {
 		r.logger.Info("Get token",
 			zap.String("function", "GetToken"),
@@ -40,14 +45,14 @@ func (r *authRepo) GetToken(token string, userID int64, tokenType dto.TokenType)
 			zap.Error(err),
 		)
 	}(time.Now())
-	t = &dto.Token{}
+	t = &models.Token{}
 	if err = r.db.Where("token = ? AND user_id = ? AND token_type = ?", token, userID, tokenType).First(t).Error; err != nil {
 		return nil, err
 	}
 	return t, nil
 }
 
-func (r *authRepo) DeleteToken(token *dto.Token) (err error) {
+func (r *authRepo) DeleteToken(token *models.Token) (err error) {
 	defer func(start time.Time) {
 		r.logger.Info("Delete token",
 			zap.String("function", "DeleteToken"),

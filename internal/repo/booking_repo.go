@@ -1,24 +1,33 @@
-package repository
+package repo
 
 import (
-	"homemie/internal/domain"
-	"homemie/models/dto"
+
+	"homemie/db/models"
 	"time"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
+type IBookingRepository interface {
+	Create(booking *models.Booking) error
+	FindByUserID(userID int64) ([]models.Booking, error)
+	FindByOwnerID(ownerID int64) ([]models.Booking, error)
+	FindByID(id int64) (*models.Booking, error)
+	Update(booking *models.Booking) error
+	FindCompletableBookings() ([]models.Booking, error)
+}
+
 type bookingRepo struct {
 	db     *gorm.DB
 	logger *zap.Logger
 }
 
-func NewBookingRepo(db *gorm.DB, logger *zap.Logger) domain.BookingRepository {
+func NewBookingRepo(db *gorm.DB, logger *zap.Logger) IBookingRepository {
 	return &bookingRepo{db, logger}
 }
 
-func (r *bookingRepo) Create(booking *dto.Booking) (err error) {
+func (r *bookingRepo) Create(booking *models.Booking) (err error) {
 	defer func(start time.Time) {
 		r.logger.Info("Create booking",
 			zap.String("function", "Create"),
@@ -30,7 +39,7 @@ func (r *bookingRepo) Create(booking *dto.Booking) (err error) {
 	return r.db.Create(booking).Error
 }
 
-func (r *bookingRepo) FindByUserID(userID int64) (bookings []dto.Booking, err error) {
+func (r *bookingRepo) FindByUserID(userID int64) (bookings []models.Booking, err error) {
 	defer func(start time.Time) {
 		r.logger.Info("Find bookings by user ID",
 			zap.String("function", "FindByUserID"),
@@ -43,7 +52,7 @@ func (r *bookingRepo) FindByUserID(userID int64) (bookings []dto.Booking, err er
 	return
 }
 
-func (r *bookingRepo) FindByOwnerID(ownerID int64) (bookings []dto.Booking, err error) {
+func (r *bookingRepo) FindByOwnerID(ownerID int64) (bookings []models.Booking, err error) {
 	defer func(start time.Time) {
 		r.logger.Info("Find bookings by owner ID",
 			zap.String("function", "FindByOwnerID"),
@@ -60,7 +69,7 @@ func (r *bookingRepo) FindByOwnerID(ownerID int64) (bookings []dto.Booking, err 
 	return
 }
 
-func (r *bookingRepo) FindByID(id int64) (booking *dto.Booking, err error) {
+func (r *bookingRepo) FindByID(id int64) (booking *models.Booking, err error) {
 	defer func(start time.Time) {
 		r.logger.Info("Find booking by ID",
 			zap.String("function", "FindByID"),
@@ -69,12 +78,12 @@ func (r *bookingRepo) FindByID(id int64) (booking *dto.Booking, err error) {
 			zap.Error(err),
 		)
 	}(time.Now())
-	booking = &dto.Booking{}
+	booking = &models.Booking{}
 	err = r.db.Preload("Listing").First(booking, id).Error
 	return
 }
 
-func (r *bookingRepo) Update(booking *dto.Booking) (err error) {
+func (r *bookingRepo) Update(booking *models.Booking) (err error) {
 	defer func(start time.Time) {
 		r.logger.Info("Update booking",
 			zap.String("function", "Update"),
@@ -86,7 +95,7 @@ func (r *bookingRepo) Update(booking *dto.Booking) (err error) {
 	return r.db.Save(booking).Error
 }
 
-func (r *bookingRepo) FindCompletableBookings() (bookings []dto.Booking, err error) {
+func (r *bookingRepo) FindCompletableBookings() (bookings []models.Booking, err error) {
 	defer func(start time.Time) {
 		r.logger.Info("Find completable bookings",
 			zap.String("function", "FindCompletableBookings"),
@@ -94,6 +103,6 @@ func (r *bookingRepo) FindCompletableBookings() (bookings []dto.Booking, err err
 			zap.Error(err),
 		)
 	}(time.Now())
-	err = r.db.Where("status = ? AND scheduled_time < NOW() - INTERVAL '1 day'", dto.BookingStatusAccepted).Find(&bookings).Error
+	err = r.db.Where("status = ? AND scheduled_time < NOW() - INTERVAL '1 day'", models.BookingStatusEnumAccepted).Find(&bookings).Error
 	return
 }

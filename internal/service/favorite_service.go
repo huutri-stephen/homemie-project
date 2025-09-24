@@ -2,26 +2,26 @@ package service
 
 import (
 	"errors"
-	"homemie/internal/domain"
-	"homemie/models/dto"
+	"homemie/db/models"
+	"homemie/internal/repo"
 
 	"gorm.io/gorm"
 )
 
 var ErrAlreadyFavorited = errors.New("listing is already favorited")
 
-type FavoriteService interface {
+type IFavoriteService interface {
 	AddToFavorites(userID, listingID int64) error
 	RemoveFromFavorites(userID, listingID int64) error
-	GetFavoriteListings(userID int64) ([]*dto.Listing, error)
+	GetFavoriteListings(userID int64) ([]*models.Listing, error)
 }
 
 type favoriteService struct {
-	favoriteRepo domain.FavoriteRepository
-	listingRepo  domain.ListingRepository
+	favoriteRepo repo.IFavoriteRepository
+	listingRepo  repo.IListingRepository
 }
 
-func NewFavoriteService(favoriteRepo domain.FavoriteRepository, listingRepo domain.ListingRepository) FavoriteService {
+func NewFavoriteService(favoriteRepo repo.IFavoriteRepository, listingRepo repo.IListingRepository) IFavoriteService {
 	return &favoriteService{favoriteRepo, listingRepo}
 }
 
@@ -42,7 +42,7 @@ func (s *favoriteService) AddToFavorites(userID, listingID int64) error {
 		return ErrAlreadyFavorited
 	}
 
-	favorite := &dto.Favorite{
+	favorite := &models.Favorite{
 		UserID:    userID,
 		ListingID: listingID,
 	}
@@ -53,6 +53,6 @@ func (s *favoriteService) RemoveFromFavorites(userID, listingID int64) error {
 	return s.favoriteRepo.Delete(userID, listingID)
 }
 
-func (s *favoriteService) GetFavoriteListings(userID int64) ([]*dto.Listing, error) {
+func (s *favoriteService) GetFavoriteListings(userID int64) ([]*models.Listing, error) {
 	return s.favoriteRepo.GetFavoriteListingsByUserID(userID)
 }

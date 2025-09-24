@@ -2,25 +2,32 @@ package service
 
 import (
 	"errors"
-	"homemie/internal/domain"
-	"homemie/models/dto"
-	"homemie/models/request"
+	"homemie/db/models"
+	"homemie/db/models/dto"
+	"homemie/internal/repo"
 	"time"
 
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserService struct {
-	repo   domain.UserRepository
+//create interface
+type IUserService interface {
+	GetUserProfile(id int64) (*models.User, error)
+	UpdateUserProfile(id int64, req dto.UpdateUserProfileRequest) error
+	ChangePassword(id int64, req dto.ChangePasswordRequest) error
+}
+
+type userService struct {
+	repo   repo.IUserRepository
 	logger *zap.Logger
 }
 
-func NewUserService(repo domain.UserRepository, logger *zap.Logger) *UserService {
-	return &UserService{repo: repo, logger: logger}
+func NewUserService(repo repo.IUserRepository, logger *zap.Logger) IUserService {
+	return &userService{repo: repo, logger: logger}
 }
 
-func (s *UserService) GetUserProfile(id int64) (user *dto.User, err error) {
+func (s *userService) GetUserProfile(id int64) (user *models.User, err error) {
 	defer func(start time.Time) {
 		s.logger.Info("Get user profile",
 			zap.String("function", "GetUserProfile"),
@@ -38,7 +45,7 @@ func (s *UserService) GetUserProfile(id int64) (user *dto.User, err error) {
 	return user, nil
 }
 
-func (s *UserService) UpdateUserProfile(id int64, req request.UpdateUserProfileRequest) (err error) {
+func (s *userService) UpdateUserProfile(id int64, req dto.UpdateUserProfileRequest) (err error) {
 	defer func(start time.Time) {
 		s.logger.Info("Update user profile",
 			zap.String("function", "UpdateUserProfile"),
@@ -102,7 +109,7 @@ func (s *UserService) UpdateUserProfile(id int64, req request.UpdateUserProfileR
 	return nil
 }
 
-func (s *UserService) ChangePassword(id int64, req request.ChangePasswordRequest) (err error) {
+func (s *userService) ChangePassword(id int64, req dto.ChangePasswordRequest) (err error) {
 	defer func(start time.Time) {
 		s.logger.Info("Change password",
 			zap.String("function", "ChangePassword"),
@@ -130,4 +137,3 @@ func (s *UserService) ChangePassword(id int64, req request.ChangePasswordRequest
 
 	return s.repo.UpdateUser(user)
 }
-

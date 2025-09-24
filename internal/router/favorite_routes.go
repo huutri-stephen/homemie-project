@@ -2,7 +2,7 @@ package router
 
 import (
 	"homemie/internal/handler"
-	"homemie/internal/repository"
+	"homemie/internal/repo"
 	"homemie/internal/service"
 	"homemie/pkg/utils"
 
@@ -12,8 +12,8 @@ import (
 )
 
 func InitFavoriteRoutes(r *gin.RouterGroup, db *gorm.DB, logger *zap.Logger) {
-	favoriteRepo := repository.NewFavoriteRepository(db)
-	listingRepo := repository.NewListingRepo(db, logger)
+	favoriteRepo := repo.NewFavoriteRepository(db)
+	listingRepo := repo.NewListingRepo(db, logger)
 	favoriteService := service.NewFavoriteService(favoriteRepo, listingRepo)
 	favoriteHandler := handler.NewFavoriteHandler(favoriteService)
 

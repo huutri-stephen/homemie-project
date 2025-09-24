@@ -3,7 +3,7 @@ package router
 import (
 	"homemie/config"
 	"homemie/internal/handler"
-	"homemie/internal/repository"
+	"homemie/internal/repo"
 	"homemie/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -13,9 +13,9 @@ import (
 
 // InitAuthRoutes khởi tạo các route cho Auth
 func InitAuthRoutes(rg *gin.RouterGroup, db *gorm.DB, cfg config.Config, logger *zap.Logger) {
-	authRepo := repository.NewAuthRepo(db, logger.Named("auth_repo"))
-	userRepo := repository.NewUserRepository(db, logger.Named("user_repo"))
-	svc := service.NewAuthService(authRepo, userRepo,cfg, db, logger.Named("auth_service"))
+	authRepo := repo.NewAuthRepo(db, logger.Named("auth_repo"))
+	userRepo := repo.NewUserRepository(db, logger.Named("user_repo"))
+	svc := service.NewAuthService(authRepo, userRepo, cfg, db, logger.Named("auth_service"))
 	h := handler.NewAuthHandler(svc, logger.Named("auth_handler"))
 
 	auth := rg.Group("/auth")

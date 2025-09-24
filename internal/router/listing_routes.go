@@ -6,14 +6,14 @@ import (
 	"gorm.io/gorm"
 
 	"homemie/internal/handler"
-	"homemie/internal/repository"
+	"homemie/internal/repo"
 	"homemie/internal/service"
 )
 
 func InitListingRoutes(rg *gin.RouterGroup, db *gorm.DB, logger *zap.Logger) {
-	listingRepo := repository.NewListingRepo(db, logger.Named("listing_repo"))
-	addressRepo := repository.NewAddressRepository(db, logger.Named("address_repo"))
-	listingImageRepo := repository.NewListingImageRepository(db, logger.Named("listing_image_repo"))
+	listingRepo := repo.NewListingRepo(db, logger.Named("listing_repo"))
+	addressRepo := repo.NewAddressRepository(db, logger.Named("address_repo"))
+	listingImageRepo := repo.NewListingImageRepository(db, logger.Named("listing_image_repo"))
 	svc := service.NewListingService(listingRepo, addressRepo, listingImageRepo, logger.Named("listing_service"))
 	h := handler.NewListingHandler(svc, logger.Named("listing_handler"))
 
@@ -26,9 +26,9 @@ func InitListingRoutes(rg *gin.RouterGroup, db *gorm.DB, logger *zap.Logger) {
 }
 
 func InitPublicListingRoutes(rg *gin.RouterGroup, db *gorm.DB, logger *zap.Logger) {
-	listingRepo := repository.NewListingRepo(db, logger.Named("listing_repo"))
-	addressRepo := repository.NewAddressRepository(db, logger.Named("address_repo"))
-	listingImageRepo := repository.NewListingImageRepository(db, logger.Named("listing_image_repo"))
+	listingRepo := repo.NewListingRepo(db, logger.Named("listing_repo"))
+	addressRepo := repo.NewAddressRepository(db, logger.Named("address_repo"))
+	listingImageRepo := repo.NewListingImageRepository(db, logger.Named("listing_image_repo"))
 	svc := service.NewListingService(listingRepo, addressRepo, listingImageRepo, logger.Named("listing_service"))
 	h := handler.NewListingHandler(svc, logger.Named("listing_handler"))
 

@@ -2,7 +2,7 @@ package router
 
 import (
 	"homemie/internal/handler"
-	"homemie/internal/repository"
+	"homemie/internal/repo"
 	"homemie/internal/service"
 	"homemie/pkg/utils"
 
@@ -12,7 +12,7 @@ import (
 )
 
 func InitUserRoutes(rg *gin.RouterGroup, db *gorm.DB, logger *zap.Logger) {
-	repo := repository.NewUserRepository(db, logger.Named("user_repo"))
+	repo := repo.NewUserRepository(db, logger.Named("user_repo"))
 	svc := service.NewUserService(repo, logger.Named("user_service"))
 	h := handler.NewUserHandler(svc, logger.Named("user_handler"))
 

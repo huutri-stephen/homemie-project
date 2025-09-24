@@ -1,7 +1,7 @@
 package infra
 
 import (
-	"homemie/internal/repository"
+	"homemie/internal/repo"
 	"homemie/internal/service"
 
 	"github.com/robfig/cron/v3"
@@ -13,8 +13,8 @@ func StartCronJobs(db *gorm.DB, logger *zap.Logger) {
 	logger.Info("Initializing cron jobs")
 
 	// Initialize booking service for cron job
-	bookingRepo := repository.NewBookingRepo(db, logger.Named("booking_repo"))
-	listingRepo := repository.NewListingRepo(db, logger.Named("listing_repo"))
+	bookingRepo := repo.NewBookingRepo(db, logger.Named("booking_repo"))
+	listingRepo := repo.NewListingRepo(db, logger.Named("listing_repo"))
 	bookingService := service.NewBookingService(bookingRepo, listingRepo, logger.Named("booking_service"))
 
 	// Start cron job

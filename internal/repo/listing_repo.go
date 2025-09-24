@@ -1,8 +1,8 @@
-package repository
+package repo
 
 import (
-	"homemie/internal/domain"
-	"homemie/models/dto"
+	"homemie/db/models"
+	"homemie/db/models/dto"
 	"homemie/pkg/utils"
 	"math"
 	"time"
@@ -12,16 +12,25 @@ import (
 	"gorm.io/gorm"
 )
 
+type IListingRepository interface {
+	Create(listing *models.Listing) error
+	FindAll() ([]models.Listing, error)
+	FindByID(id int64) (*models.Listing, error)
+	Update(listing *models.Listing) error
+	Delete(listing *models.Listing) error
+	SearchAndFilter(filter *dto.SearchFilterListing) ([]models.Listing, *dto.Pagination, error)
+}
+
 type listingRepo struct {
 	db     *gorm.DB
 	logger *zap.Logger
 }
 
-func NewListingRepo(db *gorm.DB, logger *zap.Logger) domain.ListingRepository {
+func NewListingRepo(db *gorm.DB, logger *zap.Logger) IListingRepository {
 	return &listingRepo{db, logger}
 }
 
-func (r *listingRepo) Create(listing *dto.Listing) (err error) {
+func (r *listingRepo) Create(listing *models.Listing) (err error) {
 	defer func(start time.Time) {
 		r.logger.Info("Create listing",
 			zap.String("function", "Create"),
@@ -33,7 +42,7 @@ func (r *listingRepo) Create(listing *dto.Listing) (err error) {
 	return r.db.Create(listing).Error
 }
 
-func (r *listingRepo) FindAll() (listings []dto.Listing, err error) {
+func (r *listingRepo) FindAll() (listings []models.Listing, err error) {
 	defer func(start time.Time) {
 		r.logger.Info("Find all listings",
 			zap.String("function", "FindAll"),
@@ -45,7 +54,7 @@ func (r *listingRepo) FindAll() (listings []dto.Listing, err error) {
 	return
 }
 
-func (r *listingRepo) FindByID(id int64) (listing *dto.Listing, err error) {
+func (r *listingRepo) FindByID(id int64) (listing *models.Listing, err error) {
 	defer func(start time.Time) {
 		r.logger.Info("Find listing by ID",
 			zap.String("function", "FindByID"),
@@ -54,12 +63,12 @@ func (r *listingRepo) FindByID(id int64) (listing *dto.Listing, err error) {
 			zap.Error(err),
 		)
 	}(time.Now())
-	listing = &dto.Listing{}
+	listing = &models.Listing{}
 	err = r.db.First(listing, id).Error
 	return
 }
 
-func (r *listingRepo) Update(listing *dto.Listing) (err error) {
+func (r *listingRepo) Update(listing *models.Listing) (err error) {
 	defer func(start time.Time) {
 		r.logger.Info("Update listing",
 			zap.String("function", "Update"),
@@ -71,7 +80,7 @@ func (r *listingRepo) Update(listing *dto.Listing) (err error) {
 	return r.db.Save(listing).Error
 }
 
-func (r *listingRepo) Delete(listing *dto.Listing) (err error) {
+func (r *listingRepo) Delete(listing *models.Listing) (err error) {
 	defer func(start time.Time) {
 		r.logger.Info("Delete listing",
 			zap.String("function", "Delete"),
@@ -83,7 +92,7 @@ func (r *listingRepo) Delete(listing *dto.Listing) (err error) {
 	return r.db.Delete(listing).Error
 }
 
-func (r *listingRepo) SearchAndFilter(filter *dto.SearchFilterListing) (listings []dto.Listing, pagination *dto.Pagination, err error) {
+func (r *listingRepo) SearchAndFilter(filter *dto.SearchFilterListing) (listings []models.Listing, pagination *dto.Pagination, err error) {
 	defer func(start time.Time) {
 		r.logger.Info("Search and filter listings",
 			zap.String("function", "SearchAndFilter"),
@@ -96,7 +105,7 @@ func (r *listingRepo) SearchAndFilter(filter *dto.SearchFilterListing) (listings
 	var total int64
 
 	// base query
-	db := r.db.Model(&dto.Listing{}).Where("listings.status = ?", "active")
+	db := r.db.Model(&models.Listing{}).Where("listings.status = ?", "active")
 
 	// keyword full-text search
 	if filter.Keyword != "" {
@@ -210,6 +219,3 @@ func (r *listingRepo) SearchAndFilter(filter *dto.SearchFilterListing) (listings
 	return
 }
 
-func (r *listingRepo) DB() *gorm.DB {
-	return r.db
-}
