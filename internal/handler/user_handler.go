@@ -3,24 +3,24 @@ package handler
 import (
 	"homemie/db/models/dto"
 	"homemie/internal/service"
+	"homemie/pkg/logger"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 )
 
 type UserHandler struct {
-	svc    service.IUserService
-	logger *zap.Logger
+	svc service.IUserService
 }
 
-func NewUserHandler(svc service.IUserService, logger *zap.Logger) *UserHandler {
-	return &UserHandler{svc: svc, logger: logger}
+func NewUserHandler(svc service.IUserService) *UserHandler {
+	return &UserHandler{svc: svc}
 }
 
 func (h *UserHandler) GetUserProfile(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
+		logger.Warnw(c.Request.Context(), "Unauthorized")
 		c.JSON(http.StatusUnauthorized, dto.BaseResponse{
 			Success: false,
 			Error:   "Unauthorized",
@@ -28,8 +28,9 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := h.svc.GetUserProfile(userID.(int64))
+	user, err := h.svc.GetUserProfile(c.Request.Context(), userID.(int64))
 	if err != nil {
+		logger.Errorw(c.Request.Context(), "Failed to get user profile", "error", err)
 		c.JSON(http.StatusInternalServerError, dto.BaseResponse{
 			Success: false,
 			Error:   err.Error(),
@@ -46,6 +47,7 @@ func (h *UserHandler) GetUserProfile(c *gin.Context) {
 func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
+		logger.Warnw(c.Request.Context(), "Unauthorized")
 		c.JSON(http.StatusUnauthorized, dto.BaseResponse{
 			Success: false,
 			Error:   "Unauthorized",
@@ -55,6 +57,7 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 
 	var req dto.UpdateUserProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Errorw(c.Request.Context(), "Failed to bind update user profile request", "error", err)
 		c.JSON(http.StatusBadRequest, dto.BaseResponse{
 			Success: false,
 			Error:   err.Error(),
@@ -62,7 +65,8 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 		return
 	}
 
-	if err := h.svc.UpdateUserProfile(userID.(int64), req); err != nil {
+	if err := h.svc.UpdateUserProfile(c.Request.Context(), userID.(int64), req); err != nil {
+		logger.Errorw(c.Request.Context(), "Failed to update user profile", "error", err)
 		c.JSON(http.StatusInternalServerError, dto.BaseResponse{
 			Success: false,
 			Error:   err.Error(),
@@ -79,6 +83,7 @@ func (h *UserHandler) UpdateUserProfile(c *gin.Context) {
 func (h *UserHandler) ChangePassword(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
+		logger.Warnw(c.Request.Context(), "Unauthorized")
 		c.JSON(http.StatusUnauthorized, dto.BaseResponse{
 			Success: false,
 			Error:   "Unauthorized",
@@ -88,6 +93,7 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 
 	var req dto.ChangePasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Errorw(c.Request.Context(), "Failed to bind change password request", "error", err)
 		c.JSON(http.StatusBadRequest, dto.BaseResponse{
 			Success: false,
 			Error:   err.Error(),
@@ -95,7 +101,8 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	if err := h.svc.ChangePassword(userID.(int64), req); err != nil {
+	if err := h.svc.ChangePassword(c.Request.Context(), userID.(int64), req); err != nil {
+		logger.Errorw(c.Request.Context(), "Failed to change password", "error", err)
 		c.JSON(http.StatusInternalServerError, dto.BaseResponse{
 			Success: false,
 			Error:   err.Error(),

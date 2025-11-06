@@ -1,49 +1,49 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"homemie/db/models"
 	"homemie/db/models/dto"
 	"homemie/internal/repo"
+	"homemie/pkg/logger"
 	"time"
 
 	"github.com/aarondl/null/v8"
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 )
 
 type IBookingService interface {
-	CreateBooking(renterID int64, input dto.CreateBookingRequest) (*models.Booking, error)
-	GetMyBookings(userID int64) ([]models.Booking, error)
-	GetOwnerBookings(ownerID int64) ([]models.Booking, error)
-	RespondToBooking(bookingID int64, ownerID int64, req dto.RespondBookingRequest) (*models.Booking, error)
-	CancelBooking(bookingID int64, userID int64, userRole string) (*models.Booking, error)
-	AutoCompleteBookings()
+	CreateBooking(ctx context.Context, renterID int64, input dto.CreateBookingRequest) (*models.Booking, error)
+	GetMyBookings(ctx context.Context, userID int64) (models.BookingSlice, error)
+	GetOwnerBookings(ctx context.Context, ownerID int64) (models.BookingSlice, error)
+	RespondToBooking(ctx context.Context, bookingID int64, ownerID int64, req dto.RespondBookingRequest) (*models.Booking, error)
+	CancelBooking(ctx context.Context, bookingID int64, userID int64, userRole string) (*models.Booking, error)
+	AutoCompleteBookings(ctx context.Context)
 }
 
 type bookingService struct {
 	bookingRepo repo.IBookingRepository
 	listingRepo repo.IListingRepository
-	logger      *zap.Logger
 }
 
-func NewBookingService(bookingRepo repo.IBookingRepository, listingRepo repo.IListingRepository, logger *zap.Logger) IBookingService {
-	return &bookingService{bookingRepo, listingRepo, logger}
+func NewBookingService(bookingRepo repo.IBookingRepository, listingRepo repo.IListingRepository) IBookingService {
+	return &bookingService{bookingRepo, listingRepo}
 }
 
-func (s *bookingService) CreateBooking(renterID int64, input dto.CreateBookingRequest) (booking *models.Booking, err error) {
+func (s *bookingService) CreateBooking(ctx context.Context, renterID int64, input dto.CreateBookingRequest) (booking *models.Booking, err error) {
 	defer func(start time.Time) {
-		s.logger.Info("Create booking",
-			zap.String("function", "CreateBooking"),
-			zap.Any("params", gin.H{"renter_id": renterID, "input": input}),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Create booking",
+			"function", "CreateBooking",
+			"params", gin.H{"renter_id": renterID, "input": input},
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
 
 	scheduledTime, err := time.Parse(time.RFC3339, input.ScheduledTime)
 	if err != nil {
-		s.logger.Error("Invalid scheduled_time format", zap.Error(err))
+		logger.Errorw(ctx, "Invalid scheduled_time format", "error", err)
 		return nil, errors.New("invalid scheduled_time format")
 	}
 
@@ -55,63 +55,63 @@ func (s *bookingService) CreateBooking(renterID int64, input dto.CreateBookingRe
 		Status:            null.StringFrom(models.BookingStatusEnumPending),
 	}
 
-	err = s.bookingRepo.Create(booking)
+	err = s.bookingRepo.Create(ctx, booking)
 	return
 }
 
-func (s *bookingService) GetMyBookings(userID int64) (bookings []models.Booking, err error) {
+func (s *bookingService) GetMyBookings(ctx context.Context, userID int64) (bookings models.BookingSlice, err error) {
 	defer func(start time.Time) {
-		s.logger.Info("Get my bookings",
-			zap.String("function", "GetMyBookings"),
-			zap.Int64("params", userID),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Get my bookings",
+			"function", "GetMyBookings",
+			"params", userID,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
-	return s.bookingRepo.FindByUserID(userID)
+	return s.bookingRepo.FindByUserID(ctx, userID)
 }
 
-func (s *bookingService) GetOwnerBookings(ownerID int64) (bookings []models.Booking, err error) {
+func (s *bookingService) GetOwnerBookings(ctx context.Context, ownerID int64) (bookings models.BookingSlice, err error) {
 	defer func(start time.Time) {
-		s.logger.Info("Get owner bookings",
-			zap.String("function", "GetOwnerBookings"),
-			zap.Int64("params", ownerID),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Get owner bookings",
+			"function", "GetOwnerBookings",
+			"params", ownerID,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
-	return s.bookingRepo.FindByOwnerID(ownerID)
+	return s.bookingRepo.FindByOwnerID(ctx, ownerID)
 }
 
-func (s *bookingService) RespondToBooking(bookingID int64, ownerID int64, req dto.RespondBookingRequest) (booking *models.Booking, err error) {
+func (s *bookingService) RespondToBooking(ctx context.Context, bookingID int64, ownerID int64, req dto.RespondBookingRequest) (booking *models.Booking, err error) {
 	defer func(start time.Time) {
-		s.logger.Info("Respond to booking",
-			zap.String("function", "RespondToBooking"),
-			zap.Any("params", gin.H{"booking_id": bookingID, "owner_id": ownerID, "req": req}),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Respond to booking",
+			"function", "RespondToBooking",
+			"params", gin.H{"booking_id": bookingID, "owner_id": ownerID, "req": req},
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
 
-	booking, err = s.bookingRepo.FindByID(bookingID)
+	booking, err = s.bookingRepo.FindByID(ctx, bookingID)
 	if err != nil {
-		s.logger.Error("Booking not found", zap.Error(err))
+		logger.Errorw(ctx, "Booking not found", "error", err)
 		return nil, errors.New("booking not found")
 	}
 
-	listing, err := s.listingRepo.FindByID(booking.ListingID)
+	listing, err := s.listingRepo.FindByID(ctx, booking.ListingID)
 	if err != nil {
-		s.logger.Error("Listing not found", zap.Error(err))
+		logger.Errorw(ctx, "Listing not found", "error", err)
 		return nil, errors.New("listing not found")
 	}
 
 	if listing.OwnerID.Int64 != ownerID {
-		s.logger.Warn("Unauthorized booking response attempt")
+		logger.Warnw(ctx, "Unauthorized booking response attempt")
 		return nil, errors.New("unauthorized")
 	}
 
 	if booking.Status.String != models.BookingStatusEnumPending {
-		s.logger.Warn("Booking cannot be responded to", zap.String("status", booking.Status.String))
+		logger.Warnw(ctx, "Booking cannot be responded to", "status", booking.Status.String)
 		return nil, errors.New("booking cannot be responded to")
 	}
 
@@ -121,29 +121,29 @@ func (s *bookingService) RespondToBooking(bookingID int64, ownerID int64, req dt
 	booking.RespondedAt = null.TimeFrom(now)
 	booking.RespondedBy = null.Int64From(ownerID)
 
-	err = s.bookingRepo.Update(booking)
+	err = s.bookingRepo.Update(ctx, booking)
 	return
 }
 
-func (s *bookingService) CancelBooking(bookingID int64, userID int64, userRole string) (booking *models.Booking, err error) {
+func (s *bookingService) CancelBooking(ctx context.Context, bookingID int64, userID int64, userRole string) (booking *models.Booking, err error) {
 	defer func(start time.Time) {
-		s.logger.Info("Cancel booking",
-			zap.String("function", "CancelBooking"),
-			zap.Any("params", gin.H{"booking_id": bookingID, "user_id": userID, "user_role": userRole}),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Cancel booking",
+			"function", "CancelBooking",
+			"params", gin.H{"booking_id": bookingID, "user_id": userID, "user_role": userRole},
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
 
-	booking, err = s.bookingRepo.FindByID(bookingID)
+	booking, err = s.bookingRepo.FindByID(ctx, bookingID)
 	if err != nil {
-		s.logger.Error("Booking not found", zap.Error(err))
+		logger.Errorw(ctx, "Booking not found", "error", err)
 		return nil, errors.New("booking not found")
 	}
 
-	listing, err := s.listingRepo.FindByID(booking.ListingID)
+	listing, err := s.listingRepo.FindByID(ctx, booking.ListingID)
 	if err != nil {
-		s.logger.Error("Listing not found", zap.Error(err))
+		logger.Errorw(ctx, "Listing not found", "error", err)
 		return nil, errors.New("listing not found")
 	}
 
@@ -151,12 +151,12 @@ func (s *bookingService) CancelBooking(bookingID int64, userID int64, userRole s
 	isRenter := booking.RenterID == userID
 
 	if !isOwner && !isRenter {
-		s.logger.Warn("Unauthorized booking cancellation attempt")
+		logger.Warnw(ctx, "Unauthorized booking cancellation attempt")
 		return nil, errors.New("unauthorized")
 	}
 
 	if booking.Status.String != models.BookingStatusEnumPending && booking.Status.String != models.BookingStatusEnumAccepted {
-		s.logger.Warn("Booking cannot be cancelled", zap.String("status", booking.Status.String))
+		logger.Warnw(ctx, "Booking cannot be cancelled", "status", booking.Status.String)
 		return nil, errors.New("booking cannot be cancelled")
 	}
 
@@ -165,30 +165,30 @@ func (s *bookingService) CancelBooking(bookingID int64, userID int64, userRole s
 	booking.RespondedAt = null.TimeFrom(now)
 	booking.RespondedBy = null.Int64From(userID)
 
-	err = s.bookingRepo.Update(booking)
+	err = s.bookingRepo.Update(ctx, booking)
 	return
 }
 
-func (s *bookingService) AutoCompleteBookings() {
+func (s *bookingService) AutoCompleteBookings(ctx context.Context) {
 	defer func(start time.Time) {
-		s.logger.Info("Auto-complete bookings cron job",
-			zap.String("function", "AutoCompleteBookings"),
-			zap.Duration("duration", time.Since(start)),
+		logger.FromContext(ctx).Infow("Auto-complete bookings cron job",
+			"function", "AutoCompleteBookings",
+			"duration", time.Since(start),
 		)
 	}(time.Now())
 
-	bookings, err := s.bookingRepo.FindCompletableBookings()
+	bookings, err := s.bookingRepo.FindCompletableBookings(ctx)
 	if err != nil {
-		s.logger.Error("Failed to find completable bookings", zap.Error(err))
+		logger.Errorw(ctx, "Failed to find completable bookings", "error", err)
 		return
 	}
 
-	s.logger.Info("Found bookings to auto-complete", zap.Int("count", len(bookings)))
+	logger.Infow(ctx, "Found bookings to auto-complete", "count", len(bookings))
 
 	for _, booking := range bookings {
 		booking.Status = null.StringFrom(models.BookingStatusEnumCompleted)
-		if err := s.bookingRepo.Update(&booking); err != nil {
-			s.logger.Error("Failed to auto-complete booking", zap.Int64("booking_id", booking.ID), zap.Error(err))
+		if err := s.bookingRepo.Update(ctx, booking); err != nil {
+			logger.Errorw(ctx, "Failed to auto-complete booking", "booking_id", booking.ID, "error", err)
 		}
 	}
 }

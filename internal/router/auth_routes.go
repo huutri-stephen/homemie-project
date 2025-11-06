@@ -1,22 +1,24 @@
 package router
 
 import (
+	"database/sql"
 	"homemie/config"
 	"homemie/internal/handler"
 	"homemie/internal/repo"
 	"homemie/internal/service"
 
+	"homemie/pkg/utils"
+
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
 )
 
 // InitAuthRoutes khởi tạo các route cho Auth
-func InitAuthRoutes(rg *gin.RouterGroup, db *gorm.DB, cfg config.Config, logger *zap.Logger) {
-	authRepo := repo.NewAuthRepo(db, logger.Named("auth_repo"))
-	userRepo := repo.NewUserRepository(db, logger.Named("user_repo"))
-	svc := service.NewAuthService(authRepo, userRepo, cfg, db, logger.Named("auth_service"))
-	h := handler.NewAuthHandler(svc, logger.Named("auth_handler"))
+func InitAuthRoutes(rg *gin.RouterGroup, db *sql.DB, cfg *config.Config) {
+	authRepo := repo.NewAuthRepo(db)
+	userRepo := repo.NewUserRepository(db)
+	emailTempl := utils.NewEmailTemplates(cfg, db)
+	svc := service.NewAuthService(authRepo, userRepo, emailTempl)
+	h := handler.NewAuthHandler(svc)
 
 	auth := rg.Group("/auth")
 

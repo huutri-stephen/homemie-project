@@ -2,6 +2,8 @@ package utils
 
 import (
 	"bytes"
+	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"html/template"
@@ -10,20 +12,30 @@ import (
 
 	"homemie/config"
 	"homemie/db/models"
-
-	"gorm.io/gorm"
 )
 
-func SendVerificationEmail(cfg config.Config, db *gorm.DB, email, name, token string) error {
-	var emailTemplate models.EmailTemplate
-	if err := db.Where("name = ?", "VERIFY_EMAIL").First(&emailTemplate).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+type EmailTemplates struct {
+	cfg *config.Config
+	db 	*sql.DB
+}
+
+func NewEmailTemplates(cfg *config.Config, db *sql.DB) *EmailTemplates {
+	return &EmailTemplates{
+		cfg: cfg,
+		db:  db,
+	}
+}
+
+func (e *EmailTemplates) SendVerificationEmail(ctx context.Context, email, name, token string) error {
+	emailTemplate, err := models.EmailTemplates(models.EmailTemplateWhere.Name.EQ("VERIFY_EMAIL")).One(ctx, e.db)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
 			return errors.New("verification email template not found")
 		}
 		return err
 	}
 
-	verificationURL := fmt.Sprintf("http://%s:%s%s/verify-email?email=%s&token=%s", cfg.Server.Host, cfg.Server.Port, cfg.Server.ApiVersion, email, token)
+	verificationURL := fmt.Sprintf("http://%s:%s%s/verify-email?email=%s&token=%s", e.cfg.Server.Host, e.cfg.Server.Port, e.cfg.Server.ApiVersion, email, token)
 
 	data := struct {
 		Name         string
@@ -47,8 +59,8 @@ func SendVerificationEmail(cfg config.Config, db *gorm.DB, email, name, token st
 		return fmt.Errorf("failed to execute email template: %w", err)
 	}
 
-	auth := smtp.PlainAuth("", cfg.Email.SmtpUser, cfg.Email.SmtpPass, cfg.Email.SmtpHost)
-	smtpAddr := fmt.Sprintf("%s:%s", cfg.Email.SmtpHost, cfg.Email.SmtpPort)
+	auth := smtp.PlainAuth("", e.cfg.Email.SmtpUser, e.cfg.Email.SmtpPass, e.cfg.Email.SmtpHost)
+	smtpAddr := fmt.Sprintf("%s:%s", e.cfg.Email.SmtpHost, e.cfg.Email.SmtpPort)
 	to := []string{email}
 	msg := []byte(
 		"To: " + email + "\r\n" +
@@ -58,23 +70,23 @@ func SendVerificationEmail(cfg config.Config, db *gorm.DB, email, name, token st
 			body.String(),
 	)
 
-	if err := smtp.SendMail(smtpAddr, auth, cfg.Email.SenderEmail, to, msg); err != nil {
+	if err := smtp.SendMail(smtpAddr, auth, e.cfg.Email.SenderEmail, to, msg); err != nil {
 		return fmt.Errorf("failed to send verification email: %w", err)
 	}
 
 	return nil
 }
 
-func SendPasswordResetEmail(cfg config.Config, db *gorm.DB, email, name, token string) error {
-	var emailTemplate models.EmailTemplate
-	if err := db.Where("name = ?", "RESET_PASSWORD").First(&emailTemplate).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+func (e *EmailTemplates) SendPasswordResetEmail(ctx context.Context, email, name, token string) error {
+	emailTemplate, err := models.EmailTemplates(models.EmailTemplateWhere.Name.EQ("RESET_PASSWORD")).One(ctx, e.db)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
 			return errors.New("password reset email template not found")
 		}
 		return err
 	}
 
-	resetURL := fmt.Sprintf("http://%s:%s%s/reset-password?email=%s&token=%s", cfg.Server.Host, cfg.Server.Port, cfg.Server.ApiVersion, email, token)
+	resetURL := fmt.Sprintf("http://%s:%s%s/reset-password?email=%s&token=%s", e.cfg.Server.Host, e.cfg.Server.Port, e.cfg.Server.ApiVersion, email, token)
 
 	data := struct {
 		Name         string
@@ -98,8 +110,8 @@ func SendPasswordResetEmail(cfg config.Config, db *gorm.DB, email, name, token s
 		return fmt.Errorf("failed to execute email template: %w", err)
 	}
 
-	auth := smtp.PlainAuth("", cfg.Email.SmtpUser, cfg.Email.SmtpPass, cfg.Email.SmtpHost)
-	smtpAddr := fmt.Sprintf("%s:%s", cfg.Email.SmtpHost, cfg.Email.SmtpPort)
+	auth := smtp.PlainAuth("", e.cfg.Email.SmtpUser, e.cfg.Email.SmtpPass, e.cfg.Email.SmtpHost)
+	smtpAddr := fmt.Sprintf("%s:%s", e.cfg.Email.SmtpHost, e.cfg.Email.SmtpPort)
 	to := []string{email}
 	msg := []byte(
 		"To: " + email + "\r\n" +
@@ -109,7 +121,7 @@ func SendPasswordResetEmail(cfg config.Config, db *gorm.DB, email, name, token s
 			body.String(),
 	)
 
-	if err := smtp.SendMail(smtpAddr, auth, cfg.Email.SenderEmail, to, msg); err != nil {
+	if err := smtp.SendMail(smtpAddr, auth, e.cfg.Email.SenderEmail, to, msg); err != nil {
 		return fmt.Errorf("failed to send password reset email: %w", err)
 	}
 

@@ -1,38 +1,40 @@
 package repo
 
 import (
+	"context"
+	"database/sql"
+	"fmt"
 	"homemie/db/models"
+	"homemie/pkg/logger"
 	"time"
 
-	"go.uber.org/zap"
-	"gorm.io/gorm"
+	"github.com/aarondl/sqlboiler/v4/boil"
 )
 
 type IAddressRepository interface {
-	Create(address *models.Address) (*models.Address, error)
+	Create(ctx context.Context, address *models.Address) (*models.Address, error)
 }
 
 type addressRepo struct {
-	db     *gorm.DB
-	logger *zap.Logger
+	db *sql.DB
 }
 
-func NewAddressRepository(db *gorm.DB, logger *zap.Logger) IAddressRepository {
-	return &addressRepo{db, logger}
+func NewAddressRepository(db *sql.DB) IAddressRepository {
+	return &addressRepo{db}
 }
 
-func (r *addressRepo) Create(address *models.Address) (createdAddress *models.Address, err error) {
+func (r *addressRepo) Create(ctx context.Context, address *models.Address) (createdAddress *models.Address, err error) {
 	defer func(start time.Time) {
-		r.logger.Info("Create address",
-			zap.String("function", "Create"),
-			zap.Any("params", address),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Create address",
+			"function", "Create",
+			"params", address,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
 
-	if err = r.db.Create(address).Error; err != nil {
-		return nil, err
+	if err = address.Insert(ctx, r.db, boil.Infer()); err != nil {
+		return nil, fmt.Errorf("failed to create address: %w", err)
 	}
 	return address, nil
 }

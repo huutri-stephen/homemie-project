@@ -1,108 +1,140 @@
 package repo
 
 import (
-
+	"context"
+	"database/sql"
+	"fmt"
 	"homemie/db/models"
+	"homemie/pkg/logger"
 	"time"
 
-	"go.uber.org/zap"
-	"gorm.io/gorm"
+	"github.com/aarondl/null/v8"
+	"github.com/aarondl/sqlboiler/v4/boil"
+	"github.com/aarondl/sqlboiler/v4/queries/qm"
 )
 
 type IBookingRepository interface {
-	Create(booking *models.Booking) error
-	FindByUserID(userID int64) ([]models.Booking, error)
-	FindByOwnerID(ownerID int64) ([]models.Booking, error)
-	FindByID(id int64) (*models.Booking, error)
-	Update(booking *models.Booking) error
-	FindCompletableBookings() ([]models.Booking, error)
+	Create(ctx context.Context, booking *models.Booking) error
+	FindByUserID(ctx context.Context, userID int64) (models.BookingSlice, error)
+	FindByOwnerID(ctx context.Context, ownerID int64) (models.BookingSlice, error)
+	FindByID(ctx context.Context, id int64) (*models.Booking, error)
+	Update(ctx context.Context, booking *models.Booking) error
+	FindCompletableBookings(ctx context.Context) (models.BookingSlice, error)
 }
 
 type bookingRepo struct {
-	db     *gorm.DB
-	logger *zap.Logger
+	db *sql.DB
 }
 
-func NewBookingRepo(db *gorm.DB, logger *zap.Logger) IBookingRepository {
-	return &bookingRepo{db, logger}
+func NewBookingRepo(db *sql.DB) IBookingRepository {
+	return &bookingRepo{db}
 }
 
-func (r *bookingRepo) Create(booking *models.Booking) (err error) {
+func (r *bookingRepo) Create(ctx context.Context, booking *models.Booking) (err error) {
 	defer func(start time.Time) {
-		r.logger.Info("Create booking",
-			zap.String("function", "Create"),
-			zap.Any("params", booking),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Create booking",
+			"function", "Create",
+			"params", booking,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
-	return r.db.Create(booking).Error
+	err = booking.Insert(ctx, r.db, boil.Infer())
+	if err != nil {
+		return fmt.Errorf("failed to create booking: %w", err)
+	}
+	return nil
 }
 
-func (r *bookingRepo) FindByUserID(userID int64) (bookings []models.Booking, err error) {
+func (r *bookingRepo) FindByUserID(ctx context.Context, userID int64) (bookings models.BookingSlice, err error) {
 	defer func(start time.Time) {
-		r.logger.Info("Find bookings by user ID",
-			zap.String("function", "FindByUserID"),
-			zap.Int64("params", userID),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Find bookings by user ID",
+			"function", "FindByUserID",
+			"params", userID,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
-	err = r.db.Preload("Listing").Where("renter_id = ?", userID).Find(&bookings).Error
+	bookings, err = models.Bookings(
+		models.BookingWhere.RenterID.EQ(userID),
+		qm.Load(models.BookingRels.Listing),
+	).All(ctx, r.db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find bookings by user id: %w", err)
+	}
 	return
 }
 
-func (r *bookingRepo) FindByOwnerID(ownerID int64) (bookings []models.Booking, err error) {
+func (r *bookingRepo) FindByOwnerID(ctx context.Context, ownerID int64) (bookings models.BookingSlice, err error) {
 	defer func(start time.Time) {
-		r.logger.Info("Find bookings by owner ID",
-			zap.String("function", "FindByOwnerID"),
-			zap.Int64("params", ownerID),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Find bookings by owner ID",
+			"function", "FindByOwnerID",
+			"params", ownerID,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
-	err = r.db.Joins("JOIN listings ON listings.id = bookings.listing_id").
-		Where("listings.owner_id = ?", ownerID).
-		Preload("User").
-		Preload("Listing").
-		Find(&bookings).Error
+	bookings, err = models.Bookings(
+		qm.InnerJoin("listings l on l.id = bookings.listing_id"),
+		qm.Where("l.owner_id = ?", ownerID),
+		qm.Load(models.BookingRels.Renter),
+		qm.Load(models.BookingRels.Listing),
+	).All(ctx, r.db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find bookings by owner id: %w", err)
+	}
 	return
 }
 
-func (r *bookingRepo) FindByID(id int64) (booking *models.Booking, err error) {
+func (r *bookingRepo) FindByID(ctx context.Context, id int64) (booking *models.Booking, err error) {
 	defer func(start time.Time) {
-		r.logger.Info("Find booking by ID",
-			zap.String("function", "FindByID"),
-			zap.Int64("params", id),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Find booking by ID",
+			"function", "FindByID",
+			"params", id,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
-	booking = &models.Booking{}
-	err = r.db.Preload("Listing").First(booking, id).Error
+	booking, err = models.Bookings(
+		models.BookingWhere.ID.EQ(id),
+		qm.Load(models.BookingRels.Listing),
+	).One(ctx, r.db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find booking by id: %w", err)
+	}
 	return
 }
 
-func (r *bookingRepo) Update(booking *models.Booking) (err error) {
+func (r *bookingRepo) Update(ctx context.Context, booking *models.Booking) (err error) {
 	defer func(start time.Time) {
-		r.logger.Info("Update booking",
-			zap.String("function", "Update"),
-			zap.Any("params", booking),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Update booking",
+			"function", "Update",
+			"params", booking,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
-	return r.db.Save(booking).Error
+	_, err = booking.Update(ctx, r.db, boil.Infer())
+	if err != nil {
+		return fmt.Errorf("failed to update booking: %w", err)
+	}
+	return nil
 }
 
-func (r *bookingRepo) FindCompletableBookings() (bookings []models.Booking, err error) {
+func (r *bookingRepo) FindCompletableBookings(ctx context.Context) (bookings models.BookingSlice, err error) {
 	defer func(start time.Time) {
-		r.logger.Info("Find completable bookings",
-			zap.String("function", "FindCompletableBookings"),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Find completable bookings",
+			"function", "FindCompletableBookings",
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
-	err = r.db.Where("status = ? AND scheduled_time < NOW() - INTERVAL '1 day'", models.BookingStatusEnumAccepted).Find(&bookings).Error
+	bookings, err = models.Bookings(
+		models.BookingWhere.Status.EQ(null.StringFrom(models.BookingStatusEnumAccepted)),
+		qm.Where("scheduled_time < NOW() - INTERVAL '1 day'"),
+	).All(ctx, r.db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find completable bookings: %w", err)
+	}
 	return
 }

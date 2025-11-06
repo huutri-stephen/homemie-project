@@ -1,49 +1,66 @@
 package repo
 
 import (
+	"context"
+	"database/sql"
+	"fmt"
 	"homemie/db/models"
 
-	"gorm.io/gorm"
+	"github.com/aarondl/sqlboiler/v4/boil"
+	"github.com/aarondl/sqlboiler/v4/queries/qm"
 )
 
 type IFavoriteRepository interface {
-	Create(favorite *models.Favorite) error
-	Delete(userID, listingID int64) error
-	GetFavoriteListingsByUserID(userID int64) ([]*models.Listing, error)
-	IsFavorite(userID, listingID int64) (bool, error)
+	Create(ctx context.Context, favorite *models.Favorite) error
+	Delete(ctx context.Context, userID, listingID int64) error
+	GetFavoriteListingsByUserID(ctx context.Context, userID int64) (models.ListingSlice, error)
+	IsFavorite(ctx context.Context, userID, listingID int64) (bool, error)
 }
 
 type favoriteRepo struct {
-	db *gorm.DB
+	db *sql.DB
 }
 
-func NewFavoriteRepository(db *gorm.DB) IFavoriteRepository {
+func NewFavoriteRepository(db *sql.DB) IFavoriteRepository {
 	return &favoriteRepo{db}
 }
 
-func (r *favoriteRepo) Create(favorite *models.Favorite) error {
-	return r.db.Create(favorite).Error
-}
-
-func (r *favoriteRepo) Delete(userID, listingID int64) error {
-	return r.db.Where("user_id = ? AND listing_id = ?", userID, listingID).Delete(&models.Favorite{}).Error
-}
-
-func (r *favoriteRepo) GetFavoriteListingsByUserID(userID int64) ([]*models.Listing, error) {
-	var listings []*models.Listing
-	err := r.db.
-		Table("listings").
-		Joins("JOIN favorites ON favorites.listing_id = listings.id").
-		Where("favorites.user_id = ?", userID).
-		Find(&listings).Error
-	return listings, err
-}
-
-func (r *favoriteRepo) IsFavorite(userID, listingID int64) (bool, error) {
-	var count int64
-	err := r.db.Model(&models.Favorite{}).Where("user_id = ? AND listing_id = ?", userID, listingID).Count(&count).Error
-	if err != nil {
-		return false, err
+func (r *favoriteRepo) Create(ctx context.Context, favorite *models.Favorite) error {
+	if err := favorite.Insert(ctx, r.db, boil.Infer()); err != nil {
+		return fmt.Errorf("failed to create favorite: %w", err)
 	}
-	return count > 0, nil
+	return nil
+}
+
+func (r *favoriteRepo) Delete(ctx context.Context, userID, listingID int64) error {
+	_, err := models.Favorites(
+		models.FavoriteWhere.UserID.EQ(userID),
+		models.FavoriteWhere.ListingID.EQ(listingID),
+	).DeleteAll(ctx, r.db)
+	if err != nil {
+		return fmt.Errorf("failed to delete favorite: %w", err)
+	}
+	return nil
+}
+
+func (r *favoriteRepo) GetFavoriteListingsByUserID(ctx context.Context, userID int64) (models.ListingSlice, error) {
+	listings, err := models.Listings(
+		qm.InnerJoin("favorites f ON f.listing_id = listings.id"),
+		qm.Where("f.user_id = ?", userID),
+	).All(ctx, r.db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get favorite listings: %w", err)
+	}
+	return listings, nil
+}
+
+func (r *favoriteRepo) IsFavorite(ctx context.Context, userID, listingID int64) (bool, error) {
+	exists, err := models.Favorites(
+		models.FavoriteWhere.UserID.EQ(userID),
+		models.FavoriteWhere.ListingID.EQ(listingID),
+	).Exists(ctx, r.db)
+	if err != nil {
+		return false, fmt.Errorf("failed to check if is favorite: %w", err)
+	}
+	return exists, nil
 }

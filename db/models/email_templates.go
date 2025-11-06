@@ -24,7 +24,7 @@ import (
 
 // EmailTemplate is an object representing the database table.
 type EmailTemplate struct {
-	ID        int64     `boil:"id" json:"id" toml:"id" yaml:"id"`
+	ID        int       `boil:"id" json:"id" toml:"id" yaml:"id"`
 	Name      string    `boil:"name" json:"name" toml:"name" yaml:"name"`
 	Subject   string    `boil:"subject" json:"subject" toml:"subject" yaml:"subject"`
 	Body      string    `boil:"body" json:"body" toml:"body" yaml:"body"`
@@ -70,14 +70,14 @@ var EmailTemplateTableColumns = struct {
 // Generated where
 
 var EmailTemplateWhere = struct {
-	ID        whereHelperint64
+	ID        whereHelperint
 	Name      whereHelperstring
 	Subject   whereHelperstring
 	Body      whereHelperstring
 	CreatedAt whereHelpernull_Time
 	UpdatedAt whereHelpernull_Time
 }{
-	ID:        whereHelperint64{field: "\"email_templates\".\"id\""},
+	ID:        whereHelperint{field: "\"email_templates\".\"id\""},
 	Name:      whereHelperstring{field: "\"email_templates\".\"name\""},
 	Subject:   whereHelperstring{field: "\"email_templates\".\"subject\""},
 	Body:      whereHelperstring{field: "\"email_templates\".\"body\""},
@@ -427,7 +427,7 @@ func EmailTemplates(mods ...qm.QueryMod) emailTemplateQuery {
 
 // FindEmailTemplate retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
-func FindEmailTemplate(ctx context.Context, exec boil.ContextExecutor, iD int64, selectCols ...string) (*EmailTemplate, error) {
+func FindEmailTemplate(ctx context.Context, exec boil.ContextExecutor, iD int, selectCols ...string) (*EmailTemplate, error) {
 	emailTemplateObj := &EmailTemplate{}
 
 	sel := "*"
@@ -956,7 +956,7 @@ func (o *EmailTemplateSlice) ReloadAll(ctx context.Context, exec boil.ContextExe
 }
 
 // EmailTemplateExists checks if the EmailTemplate row exists.
-func EmailTemplateExists(ctx context.Context, exec boil.ContextExecutor, iD int64) (bool, error) {
+func EmailTemplateExists(ctx context.Context, exec boil.ContextExecutor, iD int) (bool, error) {
 	var exists bool
 	sql := "select exists(select 1 from \"email_templates\" where \"id\"=$1 limit 1)"
 

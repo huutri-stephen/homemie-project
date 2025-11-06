@@ -1,33 +1,33 @@
 package handler
 
 import (
-	"net/http"
-
 	"homemie/db/models/dto"
 	"homemie/internal/service"
+	"homemie/pkg/logger"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 )
 
 type ListingImageHandler struct {
 	service service.IListingImageService
-	logger  *zap.Logger
 }
 
-func NewListingImageHandler(service service.IListingImageService, logger *zap.Logger) *ListingImageHandler {
-	return &ListingImageHandler{service, logger}
+func NewListingImageHandler(service service.IListingImageService) *ListingImageHandler {
+	return &ListingImageHandler{service}
 }
 
 func (h *ListingImageHandler) AddListingImages(c *gin.Context) {
 	var req dto.AddListingImagesRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Errorw(c.Request.Context(), "Invalid request body", "error", err)
 		c.JSON(http.StatusBadRequest, dto.BaseResponse{Success: false, Error: "Invalid request body"})
 		return
 	}
 
-	listingImages, err := h.service.AddListingImages(req)
+	listingImages, err := h.service.AddListingImages(c.Request.Context(), req)
 	if err != nil {
+		logger.Errorw(c.Request.Context(), "Failed to add listing images", "error", err)
 		c.JSON(http.StatusInternalServerError, dto.BaseResponse{Success: false, Error: "Failed to add listing images"})
 		return
 	}

@@ -1,79 +1,62 @@
 package config
 
 import (
-	"log"
-	"os"
+	"fmt"
 
-	"github.com/joho/godotenv"
+	"github.com/ilyakaznacheev/cleanenv"
+
 )
 
 type Config struct {
 	Server struct {
-		Port       string
-		Host       string
-		ApiVersion string
-	}
+		Port       string `yaml:"port"`
+		Host       string `yaml:"host"`
+		ApiVersion string `yaml:"version"`
+	} `yaml:"app"`
 	DB struct {
-		Host     string
-		Port     string
-		User     string
-		Password string
-		Name     string
-	}
+		Host     string `yaml:"host"`
+		Port     string `yaml:"port"`
+		User     string `env:"HOMIE_APP_DB_USER"`
+		Password string `env:"HOMIE_APP_DB_PASSWORD"`
+		Name     string `env:"HOMIE_APP_DB_NAME"`
+		URL      string `yaml:"url"`
+	} `yaml:"db"`
 	Email struct {
-		SmtpHost    string
-		SmtpPort    string
-		SmtpUser    string
-		SmtpPass    string
-		SenderEmail string
+		SmtpHost    string `env:"HOMIE_APP_SMTP_HOST"`
+		SmtpPort    string `env:"HOMIE_APP_SMTP_PORT"`
+		SmtpUser    string `env:"HOMIE_APP_SMTP_USER"`
+		SmtpPass    string `env:"HOMIE_APP_SMTP_PASSWORD"`
+		SenderEmail string `env:"HOMIE_APP_SMTP_SENDER"`
+	}
+	JWT struct {
+		Secret string `env:"HOMIE_APP_JWT_SECRET"`
 	}
 	S3 struct {
-		Endpoint        string
-		ExternalEndpoint string
-		AccessKey       string
-		SecretKey       string
-		Region          string
-		BucketName      string
-	}
+		Endpoint         string `yaml:"endpoint"`
+		ExternalEndpoint string `yaml:"external_endpoint"`
+		AccessKey        string `env:"HOMIE_APP_S3_ACCESS_KEY_ID"`
+		SecretKey        string `env:"HOMIE_APP_S3_SECRET_ACCESS_KEY"`
+		Region           string `yaml:"region"`
+		BucketName       string `yaml:"bucket_name"`
+	} `yaml:"s3"`
 }
 
-func LoadConfig() Config {
-	err := godotenv.Load()
+func LoadConfig(path string) (*Config, error) {
+	cfg := &Config{}
+
+	if path == "" {
+		path = "./config/config.yml"
+	}
+	err := cleanenv.ReadConfig(path, cfg)
 	if err != nil {
-		log.Println("No .env file found, using system env")
+		return nil, fmt.Errorf("config error: %w", err)
 	}
 
-	cfg := Config{}
-	cfg.Server.Host = getEnv("APP_HOST", "localhost")
-	cfg.Server.Port = getEnv("APP_PORT", "8080")
-	cfg.Server.ApiVersion = getEnv("API_VERSION", "/api/v1")
-
-	cfg.DB.Host = getEnv("DB_HOST", "localhost")
-	cfg.DB.Port = getEnv("DB_PORT", "5432")
-	cfg.DB.User = getEnv("DB_USER", "postgres")
-	cfg.DB.Password = getEnv("DB_PASSWORD", "password")
-	cfg.DB.Name = getEnv("DB_NAME", "homemie")
-
-	cfg.Email.SmtpHost = getEnv("SMTP_HOST", "smtp.gmail.com")
-	cfg.Email.SmtpPort = getEnv("SMTP_PORT", "587")
-	cfg.Email.SmtpUser = getEnv("SMTP_USER", "noreply.homemie@gmail.com")
-	cfg.Email.SmtpPass = getEnv("SMTP_PASSWORD", "your_smtp_password")
-	cfg.Email.SenderEmail = getEnv("SMTP_SENDER", "noreply.homemie@gmail.com")
-
-	cfg.S3.Endpoint = getEnv("S3_ENDPOINT", "http://localhost:9000")
-	cfg.S3.ExternalEndpoint = getEnv("S3_EXTERNAL_ENDPOINT", "http://localhost:9000")
-	cfg.S3.AccessKey = getEnv("S3_ACCESS_KEY_ID", "admin")
-	cfg.S3.SecretKey = getEnv("S3_SECRET_ACCESS_KEY", "admin123")
-	cfg.S3.Region = getEnv("S3_REGION", "us-east-1")
-	cfg.S3.BucketName = getEnv("S3_BUCKET_NAME", "homemie-media")
-
-	return cfg
-}
-
-func getEnv(key, defaultVal string) string {
-	val := os.Getenv(key)
-	if val == "" {
-		return defaultVal
+	err = cleanenv.ReadEnv(cfg)
+	if err != nil {
+		return nil, err
 	}
-	return val
+
+	return cfg, nil
 }
+

@@ -1,53 +1,49 @@
 package service
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"strings"
-	"time"
-
-	"homemie/config"
 	"homemie/db/models"
 	"homemie/db/models/dto"
 	"homemie/internal/repo"
+	"homemie/pkg/logger"
 	"homemie/pkg/utils"
+	"strings"
+	"time"
 
 	"github.com/aarondl/null/v8"
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type IAuthService interface {
-	SignUp(input dto.SignUpRequest) error
-	Login(input dto.LoginRequest) (accessToken string, refreshToken string, user *models.User, err error)
-	SendVerificationEmail(email string) error
-	VerifyEmail(token string, email string) error
-	ForgotPassword(email string) error
-	ResetPassword(input dto.ResetPasswordRequest) error
+	SignUp(ctx context.Context, input dto.SignUpRequest) error
+	Login(ctx context.Context, input dto.LoginRequest) (accessToken string, refreshToken string, user *models.User, err error)
+	SendVerificationEmail(ctx context.Context, email string) error
+	VerifyEmail(ctx context.Context, token string, email string) error
+	ForgotPassword(ctx context.Context, email string) error
+	ResetPassword(ctx context.Context, input dto.ResetPasswordRequest) error
 }
 
 type authService struct {
 	authRepo repo.IAuthRepository
 	userRepo repo.IUserRepository
-	Cfg      config.Config
-	DB       *gorm.DB
-	logger   *zap.Logger
+	emailTempl *utils.EmailTemplates
 }
 
-func NewAuthService(authRepo repo.IAuthRepository, userRepo repo.IUserRepository, cfg config.Config, db *gorm.DB, logger *zap.Logger) IAuthService {
-	return &authService{authRepo: authRepo, userRepo: userRepo, Cfg: cfg, DB: db, logger: logger}
+func NewAuthService(authRepo repo.IAuthRepository, userRepo repo.IUserRepository, emailTempl *utils.EmailTemplates) IAuthService {
+	return &authService{authRepo: authRepo, userRepo: userRepo, emailTempl: emailTempl}
 }
 
-func (s *authService) SignUp(input dto.SignUpRequest) (err error) {
+func (s *authService) SignUp(ctx context.Context, input dto.SignUpRequest) (err error) {
 	defer func(start time.Time) {
-		s.logger.Info("Sign up",
-			zap.String("function", "SignUp"),
-			zap.Any("params", input),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Sign up",
+			"function", "SignUp",
+			"params", input,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
 
@@ -65,8 +61,6 @@ func (s *authService) SignUp(input dto.SignUpRequest) (err error) {
 	}
 
 	user := &models.User{
-		FirstName:             null.StringFrom(input.FirstName),
-		LastName:              null.StringFrom(input.LastName),
 		Name:                  null.StringFrom(input.Name),
 		Email:                 strings.ToLower(input.Email),
 		PasswordHash:          string(hashedPassword),
@@ -84,20 +78,20 @@ func (s *authService) SignUp(input dto.SignUpRequest) (err error) {
 		Role:                  null.StringFrom("user"),
 	}
 
-	return s.userRepo.CreateUser(user)
+	return s.userRepo.CreateUser(ctx, user)
 }
 
-func (s *authService) Login(input dto.LoginRequest) (accessToken string, refreshToken string, user *models.User, err error) {
+func (s *authService) Login(ctx context.Context, input dto.LoginRequest) (accessToken string, refreshToken string, user *models.User, err error) {
 	defer func(start time.Time) {
-		s.logger.Info("Login",
-			zap.String("function", "Login"),
-			zap.Any("params", input),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Login",
+			"function", "Login",
+			"params", input,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
 
-	user, err = s.userRepo.GetUserByEmail(input.Email)
+	user, err = s.userRepo.GetUserByEmail(ctx, input.Email)
 	if err != nil {
 		return "", "", nil, errors.New("user not found")
 	}
@@ -118,17 +112,17 @@ func (s *authService) Login(input dto.LoginRequest) (accessToken string, refresh
 	return
 }
 
-func (s *authService) SendVerificationEmail(email string) (err error) {
+func (s *authService) SendVerificationEmail(ctx context.Context, email string) (err error) {
 	defer func(start time.Time) {
-		s.logger.Info("Send verification email",
-			zap.String("function", "SendVerificationEmail"),
-			zap.String("params", email),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Send verification email",
+			"function", "SendVerificationEmail",
+			"params", email,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
 
-	user, err := s.userRepo.GetUserByEmail(email)
+	user, err := s.userRepo.GetUserByEmail(ctx, email)
 	if err != nil {
 		return errors.New("user not found")
 	}
@@ -145,29 +139,29 @@ func (s *authService) SendVerificationEmail(email string) (err error) {
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 
-	if err = s.authRepo.CreateToken(t); err != nil {
+	if err = s.authRepo.CreateToken(ctx, t); err != nil {
 		return err
 	}
 
-	return utils.SendVerificationEmail(s.Cfg, s.DB, user.Email, user.Name.String, token)
+	return s.emailTempl.SendVerificationEmail(ctx, user.Email, user.Name.String, token)
 }
 
-func (s *authService) VerifyEmail(token string, email string) (err error) {
+func (s *authService) VerifyEmail(ctx context.Context, token string, email string) (err error) {
 	defer func(start time.Time) {
-		s.logger.Info("Verify email",
-			zap.String("function", "VerifyEmail"),
-			zap.Any("params", gin.H{"token": token, "email": email}),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Verify email",
+			"function", "VerifyEmail",
+			"params", gin.H{"token": token, "email": email},
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
 
-	user, err := s.userRepo.GetUserByEmail(email)
+	user, err := s.userRepo.GetUserByEmail(ctx, email)
 	if err != nil {
 		return errors.New("user not found")
 	}
 
-	t, err := s.authRepo.GetToken(token, user.ID, models.TokenTypeEnumEmailVerification)
+	t, err := s.authRepo.GetToken(ctx, token, user.ID, models.TokenTypeEnumEmailVerification)
 	if err != nil {
 		return errors.New("invalid token")
 	}
@@ -177,7 +171,7 @@ func (s *authService) VerifyEmail(token string, email string) (err error) {
 	}
 
 	// delete the token after verification
-	if err = s.authRepo.DeleteToken(t); err != nil {
+	if err = s.authRepo.DeleteToken(ctx, t); err != nil {
 		return err
 	}
 
@@ -185,20 +179,20 @@ func (s *authService) VerifyEmail(token string, email string) (err error) {
 	user.Status = null.StringFrom("active")
 	user.EmailVerifiedAt = null.TimeFrom(now)
 
-	return s.userRepo.UpdateUser(user)
+	return s.userRepo.UpdateUser(ctx, user)
 }
 
-func (s *authService) ForgotPassword(email string) (err error) {
+func (s *authService) ForgotPassword(ctx context.Context, email string) (err error) {
 	defer func(start time.Time) {
-		s.logger.Info("Forgot password",
-			zap.String("function", "ForgotPassword"),
-			zap.String("params", email),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Forgot password",
+			"function", "ForgotPassword",
+			"params", email,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
 
-	user, err := s.userRepo.GetUserByEmail(email)
+	user, err := s.userRepo.GetUserByEmail(ctx, email)
 	if err != nil {
 		return errors.New("user not found")
 	}
@@ -213,24 +207,24 @@ func (s *authService) ForgotPassword(email string) (err error) {
 	expiresAt := now.Add(15 * time.Minute)
 	user.ResetPasswordExpiresAt = null.TimeFrom(expiresAt)
 
-	if err = s.userRepo.UpdateUser(user); err != nil {
+	if err = s.userRepo.UpdateUser(ctx, user); err != nil {
 		return err
 	}
 
-	return utils.SendPasswordResetEmail(s.Cfg, s.DB, user.Email, user.Name.String, token)
+	return s.emailTempl.SendPasswordResetEmail(ctx, user.Email, user.Name.String, token)
 }
 
-func (s *authService) ResetPassword(input dto.ResetPasswordRequest) (err error) {
+func (s *authService) ResetPassword(ctx context.Context, input dto.ResetPasswordRequest) (err error) {
 	defer func(start time.Time) {
-		s.logger.Info("Reset password",
-			zap.String("function", "ResetPassword"),
-			zap.Any("params", input),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Reset password",
+			"function", "ResetPassword",
+			"params", input,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
 
-	user, err := s.userRepo.GetUserByEmail(input.Email)
+	user, err := s.userRepo.GetUserByEmail(ctx, input.Email)
 	if err != nil {
 		return errors.New("user not found")
 	}
@@ -252,7 +246,7 @@ func (s *authService) ResetPassword(input dto.ResetPasswordRequest) (err error) 
 	user.ResetPasswordToken = null.StringFromPtr(nil)
 	user.ResetPasswordExpiresAt = null.TimeFromPtr(nil)
 
-	return s.userRepo.UpdateUser(user)
+	return s.userRepo.UpdateUser(ctx, user)
 }
 
 func generateRandomToken(length int) (string, error) {

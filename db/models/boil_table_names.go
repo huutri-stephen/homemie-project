@@ -8,12 +8,10 @@ var TableNames = struct {
 	AddressLocations string
 	Addresses        string
 	Bookings         string
-	EmailTemplates   string
 	Favorites        string
 	FeaturedAds      string
 	ListingImages    string
 	Listings         string
-	SchemaMigrations string
 	SearchLogs       string
 	Tokens           string
 	Users            string
@@ -22,12 +20,10 @@ var TableNames = struct {
 	AddressLocations: "address_locations",
 	Addresses:        "addresses",
 	Bookings:         "bookings",
-	EmailTemplates:   "email_templates",
 	Favorites:        "favorites",
 	FeaturedAds:      "featured_ads",
 	ListingImages:    "listing_images",
 	Listings:         "listings",
-	SchemaMigrations: "schema_migrations",
 	SearchLogs:       "search_logs",
 	Tokens:           "tokens",
 	Users:            "users",

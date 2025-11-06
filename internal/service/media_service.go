@@ -4,34 +4,33 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"homemie/pkg/logger"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"go.uber.org/zap"
 )
 
 type IMediaService interface {
-	GeneratePresignedUploadURL(bucketName, objectKey string) (string, error)
-	UploadFile(bucketName, objectKey string, file io.Reader, size int64) (string, error)
-	CheckBucketName(bucketName string) error
+	GeneratePresignedUploadURL(ctx context.Context, bucketName, objectKey string) (string, error)
+	UploadFile(ctx context.Context, bucketName, objectKey string, file io.Reader, size int64) (string, error)
+	CheckBucketName(ctx context.Context, bucketName string) error
 }
 
 type mediaService struct {
-	s3Client       *s3.Client
-	logger         *zap.Logger
+	s3Client         *s3.Client
 	externalEndpoint string
 }
 
-func NewMediaService(s3Client *s3.Client, logger *zap.Logger, externalEndpoint string) IMediaService {
+func NewMediaService(s3Client *s3.Client, externalEndpoint string) IMediaService {
 	return &mediaService{
-		s3Client: s3Client, logger: logger, externalEndpoint: externalEndpoint}
+		s3Client: s3Client, externalEndpoint: externalEndpoint}
 }
 
-func (s *mediaService) GeneratePresignedUploadURL(bucketName, objectKey string) (string, error) {
+func (s *mediaService) GeneratePresignedUploadURL(ctx context.Context, bucketName, objectKey string) (string, error) {
 	presignClient := s3.NewPresignClient(s.s3Client)
 
-	req, err := presignClient.PresignPutObject(context.TODO(), &s3.PutObjectInput{
+	req, err := presignClient.PresignPutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(objectKey),
 	}, func(opts *s3.PresignOptions) {
@@ -39,15 +38,15 @@ func (s *mediaService) GeneratePresignedUploadURL(bucketName, objectKey string) 
 	})
 
 	if err != nil {
-		s.logger.Error("failed to generate presigned URL", zap.Error(err))
+		logger.Errorw(ctx, "failed to generate presigned URL", "error", err)
 		return "", err
 	}
 
 	return req.URL, nil
 }
 
-func (s *mediaService) UploadFile(bucketName, objectKey string, file io.Reader, size int64) (string, error) {
-	_, err := s.s3Client.PutObject(context.TODO(), &s3.PutObjectInput{
+func (s *mediaService) UploadFile(ctx context.Context, bucketName, objectKey string, file io.Reader, size int64) (string, error) {
+	_, err := s.s3Client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket:        aws.String(bucketName),
 		Key:           aws.String(objectKey),
 		Body:          file,
@@ -55,7 +54,7 @@ func (s *mediaService) UploadFile(bucketName, objectKey string, file io.Reader, 
 		ACL:           "public-read", // Cho phép public access
 	})
 	if err != nil {
-		s.logger.Error("failed to upload file", zap.Error(err))
+		logger.Errorw(ctx, "failed to upload file", "error", err)
 		return "", err
 	}
 
@@ -63,14 +62,14 @@ func (s *mediaService) UploadFile(bucketName, objectKey string, file io.Reader, 
 	return url, nil
 }
 
-func (s *mediaService) CheckBucketName(bucketName string) error {
-	_, err := s.s3Client.HeadBucket(context.TODO(), &s3.HeadBucketInput{
+func (s *mediaService) CheckBucketName(ctx context.Context, bucketName string) error {
+	_, err := s.s3Client.HeadBucket(ctx, &s3.HeadBucketInput{
 		Bucket: aws.String(bucketName),
 	})
 
 	if err != nil {
-		s.logger.Error("Bucket "+ bucketName +" does not exist", zap.Error(err))
+		logger.Errorw(ctx, "Bucket "+bucketName+" does not exist", "error", err)
 		return err
 	}
 	return nil
-} 
+}

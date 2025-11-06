@@ -37,7 +37,7 @@ func (h *FavoriteHandler) AddToFavorites(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.AddToFavorites(userID.(int64), req.ListingID); err != nil {
+	if err := h.service.AddToFavorites(c.Request.Context(), userID.(int64), req.ListingID); err != nil {
 		if errors.Is(err, service.ErrAlreadyFavorited) {
 			c.JSON(http.StatusConflict, dto.BaseResponse{
 				Success: false,
@@ -77,7 +77,7 @@ func (h *FavoriteHandler) RemoveFromFavorites(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.RemoveFromFavorites(userID.(int64), listingID); err != nil {
+	if err := h.service.RemoveFromFavorites(c.Request.Context(), userID.(int64), listingID); err != nil {
 		c.JSON(http.StatusInternalServerError, dto.BaseResponse{
 			Success: false,
 			Error:   "Failed to remove from favorites",
@@ -101,7 +101,7 @@ func (h *FavoriteHandler) GetFavoriteListings(c *gin.Context) {
 		return
 	}
 
-	listings, err := h.service.GetFavoriteListings(userID.(int64))
+	listings, err := h.service.GetFavoriteListings(c.Request.Context(), userID.(int64))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, dto.BaseResponse{
 			Success: false,

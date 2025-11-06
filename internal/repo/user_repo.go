@@ -1,82 +1,92 @@
 package repo
 
 import (
+	"context"
+	"database/sql"
+	"fmt"
 	"homemie/db/models"
+	"homemie/pkg/logger"
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
-	"gorm.io/gorm"
+	"github.com/aarondl/sqlboiler/v4/boil"
 )
 
 type IUserRepository interface {
-	CreateUser(user *models.User) error
-	GetUserByEmail(email string) (*models.User, error)
-	GetUserByID(id int64) (*models.User, error)
-	UpdateUser(user *models.User) error
+	CreateUser(ctx context.Context, user *models.User) error
+	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
+	GetUserByID(ctx context.Context, id int64) (*models.User, error)
+	UpdateUser(ctx context.Context, user *models.User) error
 }
 
 type userRepo struct {
-	db     *gorm.DB
-	logger *zap.Logger
+	db *sql.DB
 }
 
-func NewUserRepository(db *gorm.DB, logger *zap.Logger) IUserRepository {
-	return &userRepo{db, logger}
+func NewUserRepository(db *sql.DB) IUserRepository {
+	return &userRepo{db}
 }
 
-func (r *userRepo) CreateUser(user *models.User) (err error) {
+func (r *userRepo) CreateUser(ctx context.Context, user *models.User) (err error) {
 	defer func(start time.Time) {
-		r.logger.Info("Create user",
-			zap.String("function", "CreateUser"),
-			zap.Any("params", user),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Create user",
+			"function", "CreateUser",
+			"params", user,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
-	return r.db.Create(user).Error
+	err = user.Insert(ctx, r.db, boil.Infer())
+	if err != nil {
+		return fmt.Errorf("failed to create user: %w", err)
+	}
+	return nil
 }
 
-func (r *userRepo) GetUserByEmail(email string) (user *models.User, err error) {
+func (r *userRepo) GetUserByEmail(ctx context.Context, email string) (user *models.User, err error) {
 	defer func(start time.Time) {
-		r.logger.Info("Get user by email",
-			zap.String("function", "GetUserByEmail"),
-			zap.String("params", email),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Get user by email",
+			"function", "GetUserByEmail",
+			"params", email,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
-	user = &models.User{}
-	if err = r.db.Where("email = ?", strings.ToLower(email)).First(user).Error; err != nil {
-		return nil, err
+	user, err = models.Users(models.UserWhere.Email.EQ(strings.ToLower(email))).One(ctx, r.db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user by email: %w", err)
 	}
 	return user, nil
 }
 
-func (r *userRepo) GetUserByID(id int64) (user *models.User, err error) {
+func (r *userRepo) GetUserByID(ctx context.Context, id int64) (user *models.User, err error) {
 	defer func(start time.Time) {
-		r.logger.Info("Get user by ID",
-			zap.String("function", "GetUserByID"),
-			zap.Int64("params", id),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Get user by ID",
+			"function", "GetUserByID",
+			"params", id,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
-	user = &models.User{}
-	if err = r.db.Where("id = ?", id).First(user).Error; err != nil {
-		return nil, err
+	user, err = models.Users(models.UserWhere.ID.EQ(id)).One(ctx, r.db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user by id: %w", err)
 	}
 	return user, nil
 }
 
-func (r *userRepo) UpdateUser(user *models.User) (err error) {
+func (r *userRepo) UpdateUser(ctx context.Context, user *models.User) (err error) {
 	defer func(start time.Time) {
-		r.logger.Info("Update user",
-			zap.String("function", "UpdateUser"),
-			zap.Any("params", user),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Update user",
+			"function", "UpdateUser",
+			"params", user,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
-	return r.db.Save(user).Error
+	_, err = user.Update(ctx, r.db, boil.Infer())
+	if err != nil {
+		return fmt.Errorf("failed to update user: %w", err)
+	}
+	return nil
 }

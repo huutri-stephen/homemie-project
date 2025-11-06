@@ -1,19 +1,19 @@
 package service
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"homemie/db/models"
 	"homemie/internal/repo"
-
-	"gorm.io/gorm"
 )
 
 var ErrAlreadyFavorited = errors.New("listing is already favorited")
 
 type IFavoriteService interface {
-	AddToFavorites(userID, listingID int64) error
-	RemoveFromFavorites(userID, listingID int64) error
-	GetFavoriteListings(userID int64) ([]*models.Listing, error)
+	AddToFavorites(ctx context.Context, userID, listingID int64) error
+	RemoveFromFavorites(ctx context.Context, userID, listingID int64) error
+	GetFavoriteListings(ctx context.Context, userID int64) (models.ListingSlice, error)
 }
 
 type favoriteService struct {
@@ -25,16 +25,16 @@ func NewFavoriteService(favoriteRepo repo.IFavoriteRepository, listingRepo repo.
 	return &favoriteService{favoriteRepo, listingRepo}
 }
 
-func (s *favoriteService) AddToFavorites(userID, listingID int64) error {
-	_, err := s.listingRepo.FindByID(listingID)
+func (s *favoriteService) AddToFavorites(ctx context.Context, userID, listingID int64) error {
+	_, err := s.listingRepo.FindByID(ctx, listingID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return errors.New("listing not found")
 		}
 		return err
 	}
 
-	isFav, err := s.favoriteRepo.IsFavorite(userID, listingID)
+	isFav, err := s.favoriteRepo.IsFavorite(ctx, userID, listingID)
 	if err != nil {
 		return err
 	}
@@ -46,13 +46,13 @@ func (s *favoriteService) AddToFavorites(userID, listingID int64) error {
 		UserID:    userID,
 		ListingID: listingID,
 	}
-	return s.favoriteRepo.Create(favorite)
+	return s.favoriteRepo.Create(ctx, favorite)
 }
 
-func (s *favoriteService) RemoveFromFavorites(userID, listingID int64) error {
-	return s.favoriteRepo.Delete(userID, listingID)
+func (s *favoriteService) RemoveFromFavorites(ctx context.Context, userID, listingID int64) error {
+	return s.favoriteRepo.Delete(ctx, userID, listingID)
 }
 
-func (s *favoriteService) GetFavoriteListings(userID int64) ([]*models.Listing, error) {
-	return s.favoriteRepo.GetFavoriteListingsByUserID(userID)
+func (s *favoriteService) GetFavoriteListings(ctx context.Context, userID int64) (models.ListingSlice, error) {
+	return s.favoriteRepo.GetFavoriteListingsByUserID(ctx, userID)
 }

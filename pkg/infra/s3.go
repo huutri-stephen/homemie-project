@@ -34,7 +34,7 @@ func NewS3Client() *s3.Client {
 	})
 }
 
-func EnsureBucketPolicy(s3Client *s3.Client, bucketName string) error {
+func EnsureBucketPolicy(ctx context.Context, s3Client *s3.Client, bucketName string) error {
 	policy := `{
 	  "Version": "2012-10-17",
 	  "Statement": [
@@ -56,16 +56,14 @@ func EnsureBucketPolicy(s3Client *s3.Client, bucketName string) error {
 	  ]
 	}`
 
-	_, err := s3Client.PutBucketPolicy(context.TODO(), &s3.PutBucketPolicyInput{
+	_, err := s3Client.PutBucketPolicy(ctx, &s3.PutBucketPolicyInput{
 		Bucket: aws.String(bucketName),
 		Policy: aws.String(policy),
 	})
 	return err
 }
 
-func CreateBucketIfNotExists(client *s3.Client, bucketName string) {
-	ctx := context.TODO()
-
+func CreateBucketIfNotExists(ctx context.Context, client *s3.Client, bucketName string) {
 	_, err := client.HeadBucket(ctx, &s3.HeadBucketInput{
 		Bucket: aws.String(bucketName),
 	})
@@ -85,7 +83,7 @@ func CreateBucketIfNotExists(client *s3.Client, bucketName string) {
 	}
 
 	log.Printf("Bucket %s created successfully.", bucketName)
-	EnsureBucketPolicy(client, bucketName)
+	EnsureBucketPolicy(ctx, client, bucketName)
 	log.Printf("Public read policy applied to bucket %s", bucketName)
 }
 

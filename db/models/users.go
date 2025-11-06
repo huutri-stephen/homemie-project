@@ -25,8 +25,6 @@ import (
 // User is an object representing the database table.
 type User struct {
 	ID                     int64       `boil:"id" json:"id" toml:"id" yaml:"id"`
-	FirstName              null.String `boil:"first_name" json:"first_name,omitempty" toml:"first_name" yaml:"first_name,omitempty"`
-	LastName               null.String `boil:"last_name" json:"last_name,omitempty" toml:"last_name" yaml:"last_name,omitempty"`
 	Name                   null.String `boil:"name" json:"name,omitempty" toml:"name" yaml:"name,omitempty"`
 	Email                  string      `boil:"email" json:"email" toml:"email" yaml:"email"`
 	Phone                  null.String `boil:"phone" json:"phone,omitempty" toml:"phone" yaml:"phone,omitempty"`
@@ -57,8 +55,6 @@ type User struct {
 
 var UserColumns = struct {
 	ID                     string
-	FirstName              string
-	LastName               string
 	Name                   string
 	Email                  string
 	Phone                  string
@@ -84,8 +80,6 @@ var UserColumns = struct {
 	UpdatedAt              string
 }{
 	ID:                     "id",
-	FirstName:              "first_name",
-	LastName:               "last_name",
 	Name:                   "name",
 	Email:                  "email",
 	Phone:                  "phone",
@@ -113,8 +107,6 @@ var UserColumns = struct {
 
 var UserTableColumns = struct {
 	ID                     string
-	FirstName              string
-	LastName               string
 	Name                   string
 	Email                  string
 	Phone                  string
@@ -140,8 +132,6 @@ var UserTableColumns = struct {
 	UpdatedAt              string
 }{
 	ID:                     "users.id",
-	FirstName:              "users.first_name",
-	LastName:               "users.last_name",
 	Name:                   "users.name",
 	Email:                  "users.email",
 	Phone:                  "users.phone",
@@ -171,8 +161,6 @@ var UserTableColumns = struct {
 
 var UserWhere = struct {
 	ID                     whereHelperint64
-	FirstName              whereHelpernull_String
-	LastName               whereHelpernull_String
 	Name                   whereHelpernull_String
 	Email                  whereHelperstring
 	Phone                  whereHelpernull_String
@@ -198,8 +186,6 @@ var UserWhere = struct {
 	UpdatedAt              whereHelpernull_Time
 }{
 	ID:                     whereHelperint64{field: "\"users\".\"id\""},
-	FirstName:              whereHelpernull_String{field: "\"users\".\"first_name\""},
-	LastName:               whereHelpernull_String{field: "\"users\".\"last_name\""},
 	Name:                   whereHelpernull_String{field: "\"users\".\"name\""},
 	Email:                  whereHelperstring{field: "\"users\".\"email\""},
 	Phone:                  whereHelpernull_String{field: "\"users\".\"phone\""},
@@ -357,9 +343,9 @@ func (r *userR) GetTokens() TokenSlice {
 type userL struct{}
 
 var (
-	userAllColumns            = []string{"id", "first_name", "last_name", "name", "email", "phone", "date_of_birth", "gender", "avatar_url", "bio", "password_hash", "salt", "status", "email_verified_at", "last_login_at", "reset_password_token", "reset_password_expires_at", "user_type", "identity_type", "company_name", "business_license_number", "agent_license_number", "verified_owner", "role", "created_at", "updated_at"}
+	userAllColumns            = []string{"id", "name", "email", "phone", "date_of_birth", "gender", "avatar_url", "bio", "password_hash", "salt", "status", "email_verified_at", "last_login_at", "reset_password_token", "reset_password_expires_at", "user_type", "identity_type", "company_name", "business_license_number", "agent_license_number", "verified_owner", "role", "created_at", "updated_at"}
 	userColumnsWithoutDefault = []string{"email", "password_hash"}
-	userColumnsWithDefault    = []string{"id", "first_name", "last_name", "name", "phone", "date_of_birth", "gender", "avatar_url", "bio", "salt", "status", "email_verified_at", "last_login_at", "reset_password_token", "reset_password_expires_at", "user_type", "identity_type", "company_name", "business_license_number", "agent_license_number", "verified_owner", "role", "created_at", "updated_at"}
+	userColumnsWithDefault    = []string{"id", "name", "phone", "date_of_birth", "gender", "avatar_url", "bio", "salt", "status", "email_verified_at", "last_login_at", "reset_password_token", "reset_password_expires_at", "user_type", "identity_type", "company_name", "business_license_number", "agent_license_number", "verified_owner", "role", "created_at", "updated_at"}
 	userPrimaryKeyColumns     = []string{"id"}
 	userGeneratedColumns      = []string{"id"}
 )

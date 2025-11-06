@@ -1,44 +1,44 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"homemie/db/models"
 	"homemie/db/models/dto"
 	"homemie/internal/repo"
+	"homemie/pkg/logger"
 	"time"
 
 	"github.com/aarondl/null/v8"
-	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
 //create interface
 type IUserService interface {
-	GetUserProfile(id int64) (*models.User, error)
-	UpdateUserProfile(id int64, req dto.UpdateUserProfileRequest) error
-	ChangePassword(id int64, req dto.ChangePasswordRequest) error
+	GetUserProfile(ctx context.Context, id int64) (*models.User, error)
+	UpdateUserProfile(ctx context.Context, id int64, req dto.UpdateUserProfileRequest) error
+	ChangePassword(ctx context.Context, id int64, req dto.ChangePasswordRequest) error
 }
 
 type userService struct {
-	repo   repo.IUserRepository
-	logger *zap.Logger
+	repo repo.IUserRepository
 }
 
-func NewUserService(repo repo.IUserRepository, logger *zap.Logger) IUserService {
-	return &userService{repo: repo, logger: logger}
+func NewUserService(repo repo.IUserRepository) IUserService {
+	return &userService{repo: repo}
 }
 
-func (s *userService) GetUserProfile(id int64) (user *models.User, err error) {
+func (s *userService) GetUserProfile(ctx context.Context, id int64) (user *models.User, err error) {
 	defer func(start time.Time) {
-		s.logger.Info("Get user profile",
-			zap.String("function", "GetUserProfile"),
-			zap.Any("id", id),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Get user profile",
+			"function", "GetUserProfile",
+			"id", id,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
 
-	user, err = s.repo.GetUserByID(id)
+	user, err = s.repo.GetUserByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -46,29 +46,23 @@ func (s *userService) GetUserProfile(id int64) (user *models.User, err error) {
 	return user, nil
 }
 
-func (s *userService) UpdateUserProfile(id int64, req dto.UpdateUserProfileRequest) (err error) {
+func (s *userService) UpdateUserProfile(ctx context.Context, id int64, req dto.UpdateUserProfileRequest) (err error) {
 	defer func(start time.Time) {
-		s.logger.Info("Update user profile",
-			zap.String("function", "UpdateUserProfile"),
-			zap.Any("id", id),
-			zap.Any("req", req),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Update user profile",
+			"function", "UpdateUserProfile",
+			"id", id,
+			"req", req,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
 
-	user, err := s.repo.GetUserByID(id)
+	user, err := s.repo.GetUserByID(ctx, id)
 	if err != nil {
 		return err
 	}
 
 	// Profile cơ bản
-	if req.FirstName != "" {
-		user.FirstName = null.StringFrom(req.FirstName)
-	}
-	if req.LastName != "" {
-		user.LastName = null.StringFrom(req.LastName)
-	}
 	if req.Name != "" {
 		user.Name = null.StringFrom(req.Name)
 	}
@@ -103,24 +97,24 @@ func (s *userService) UpdateUserProfile(id int64, req dto.UpdateUserProfileReque
 	}
 
 	// Persist
-	if err = s.repo.UpdateUser(user); err != nil {
+	if err = s.repo.UpdateUser(ctx, user); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *userService) ChangePassword(id int64, req dto.ChangePasswordRequest) (err error) {
+func (s *userService) ChangePassword(ctx context.Context, id int64, req dto.ChangePasswordRequest) (err error) {
 	defer func(start time.Time) {
-		s.logger.Info("Change password",
-			zap.String("function", "ChangePassword"),
-			zap.Any("id", id),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Change password",
+			"function", "ChangePassword",
+			"id", id,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
 
-	user, err := s.repo.GetUserByID(id)
+	user, err := s.repo.GetUserByID(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -136,5 +130,5 @@ func (s *userService) ChangePassword(id int64, req dto.ChangePasswordRequest) (e
 
 	user.PasswordHash = string(hashedPassword)
 
-	return s.repo.UpdateUser(user)
+	return s.repo.UpdateUser(ctx, user)
 }

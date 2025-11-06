@@ -47,8 +47,8 @@ type CreateListingRequest struct {
 	Amenities       []string              `json:"amenities"`
 	PetAllowed      bool                  `json:"pet_allowed"`
 	AllowedPetTypes []string              `json:"allowed_pet_types"`
-	Latitude        float64               `json:"latitude"`
-	Longitude       float64               `json:"longitude"`
+	// Latitude        float64               `json:"latitude"`
+	// Longitude       float64               `json:"longitude"`
 	ListingType     string                `json:"listing_type"`
 	DepositAmount   float64               `json:"deposit_amount"`
 	Address         AddressRequest        `json:"address"`

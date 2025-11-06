@@ -1,200 +1,228 @@
 package repo
 
 import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"fmt"
 	"homemie/db/models"
 	"homemie/db/models/dto"
-	"homemie/pkg/utils"
+	"homemie/pkg/logger"
 	"math"
 	"time"
 
+	"github.com/aarondl/null/v8"
+	"github.com/aarondl/sqlboiler/v4/boil"
+	"github.com/aarondl/sqlboiler/v4/queries/qm"
+	"github.com/aarondl/sqlboiler/v4/types"
+	"github.com/ericlagergren/decimal"
 	"github.com/lib/pq"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
 )
 
 type IListingRepository interface {
-	Create(listing *models.Listing) error
-	FindAll() ([]models.Listing, error)
-	FindByID(id int64) (*models.Listing, error)
-	Update(listing *models.Listing) error
-	Delete(listing *models.Listing) error
-	SearchAndFilter(filter *dto.SearchFilterListing) ([]models.Listing, *dto.Pagination, error)
+	Create(ctx context.Context, listing *models.Listing) error
+	FindAll(ctx context.Context) (models.ListingSlice, error)
+	FindByID(ctx context.Context, id int64) (*models.Listing, error)
+	Update(ctx context.Context, listing *models.Listing) error
+	Delete(ctx context.Context, listing *models.Listing) error
+	SearchAndFilter(ctx context.Context, filter *dto.SearchFilterListing) (models.ListingSlice, *dto.Pagination, error)
 }
 
 type listingRepo struct {
-	db     *gorm.DB
-	logger *zap.Logger
+	db *sql.DB
 }
 
-func NewListingRepo(db *gorm.DB, logger *zap.Logger) IListingRepository {
-	return &listingRepo{db, logger}
+func NewListingRepo(db *sql.DB) IListingRepository {
+	return &listingRepo{db}
 }
 
-func (r *listingRepo) Create(listing *models.Listing) (err error) {
+func (r *listingRepo) Create(ctx context.Context, listing *models.Listing) (err error) {
 	defer func(start time.Time) {
-		r.logger.Info("Create listing",
-			zap.String("function", "Create"),
-			zap.Any("params", listing),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Create listing",
+			"function", "Create",
+			"params", listing,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
-	return r.db.Create(listing).Error
+	err = listing.Insert(ctx, r.db, boil.Infer())
+	if err != nil {
+		return fmt.Errorf("failed to create listing: %w", err)
+	}
+	return nil
 }
 
-func (r *listingRepo) FindAll() (listings []models.Listing, err error) {
+func (r *listingRepo) FindAll(ctx context.Context) (listings models.ListingSlice, err error) {
 	defer func(start time.Time) {
-		r.logger.Info("Find all listings",
-			zap.String("function", "FindAll"),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Find all listings",
+			"function", "FindAll",
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
-	err = r.db.Find(&listings).Error
+	listings, err = models.Listings().All(ctx, r.db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find all listings: %w", err)
+	}
 	return
 }
 
-func (r *listingRepo) FindByID(id int64) (listing *models.Listing, err error) {
+func (r *listingRepo) FindByID(ctx context.Context, id int64) (listing *models.Listing, err error) {
 	defer func(start time.Time) {
-		r.logger.Info("Find listing by ID",
-			zap.String("function", "FindByID"),
-			zap.Int64("params", id),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Find listing by ID",
+			"function", "FindByID",
+			"params", id,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
-	listing = &models.Listing{}
-	err = r.db.First(listing, id).Error
+	listing, err = models.Listings(models.ListingWhere.ID.EQ(id)).One(ctx, r.db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find listing by id: %w", err)
+	}
 	return
 }
 
-func (r *listingRepo) Update(listing *models.Listing) (err error) {
+func (r *listingRepo) Update(ctx context.Context, listing *models.Listing) (err error) {
 	defer func(start time.Time) {
-		r.logger.Info("Update listing",
-			zap.String("function", "Update"),
-			zap.Any("params", listing),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Update listing",
+			"function", "Update",
+			"params", listing,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
-	return r.db.Save(listing).Error
+	_, err = listing.Update(ctx, r.db, boil.Infer())
+	if err != nil {
+		return fmt.Errorf("failed to update listing: %w", err)
+	}
+	return nil
 }
 
-func (r *listingRepo) Delete(listing *models.Listing) (err error) {
+func (r *listingRepo) Delete(ctx context.Context, listing *models.Listing) (err error) {
 	defer func(start time.Time) {
-		r.logger.Info("Delete listing",
-			zap.String("function", "Delete"),
-			zap.Any("params", listing),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Delete listing",
+			"function", "Delete",
+			"params", listing,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
-	return r.db.Delete(listing).Error
+	_, err = listing.Delete(ctx, r.db)
+	if err != nil {
+		return fmt.Errorf("failed to delete listing: %w", err)
+	}
+	return nil
 }
 
-func (r *listingRepo) SearchAndFilter(filter *dto.SearchFilterListing) (listings []models.Listing, pagination *dto.Pagination, err error) {
+func (r *listingRepo) SearchAndFilter(ctx context.Context, filter *dto.SearchFilterListing) (listings models.ListingSlice, pagination *dto.Pagination, err error) {
 	defer func(start time.Time) {
-		r.logger.Info("Search and filter listings",
-			zap.String("function", "SearchAndFilter"),
-			zap.Any("params", filter),
-			zap.Duration("duration", time.Since(start)),
-			zap.Error(err),
+		logger.FromContext(ctx).Infow("Search and filter listings",
+			"function", "SearchAndFilter",
+			"params", filter,
+			"duration", time.Since(start),
+			"error", err,
 		)
 	}(time.Now())
 
-	var total int64
-
-	// base query
-	db := r.db.Model(&models.Listing{}).Where("listings.status = ?", "active")
-
-	// keyword full-text search
-	if filter.Keyword != "" {
-		db = db.Where("search_vector @@ plainto_tsquery('simple', ?)", filter.Keyword)
+	queryMods := []qm.QueryMod{
+		models.ListingWhere.Status.EQ(null.StringFrom("active")),
 	}
 
-	// join with addresses
-	db = db.Joins("JOIN addresses a ON listings.address_id = a.id")
+	if filter.Keyword != "" {
+		queryMods = append(queryMods, qm.Where("search_vector @@ plainto_tsquery('simple', ?)", filter.Keyword))
+	}
+
+	queryMods = append(queryMods, qm.InnerJoin("addresses a ON listings.address_id = a.id"))
 	if filter.CityID != nil {
-		db = db.Where("a.city_id = ?", *filter.CityID)
+		queryMods = append(queryMods, qm.Where("a.city_id = ?", *filter.CityID))
 	}
 	if len(filter.WardIDs) > 0 {
-		db = db.Where("a.ward_id IN (?)", filter.WardIDs)
+		wardIDs := make([]interface{}, len(filter.WardIDs))
+		for i, v := range filter.WardIDs {
+			wardIDs[i] = v
+		}
+		queryMods = append(queryMods, qm.WhereIn("a.ward_id IN ?", wardIDs...))
 	}
 	if len(filter.AreaIDs) > 0 {
-		db = db.Where("a.area_id IN (?)", filter.AreaIDs)
+		areaIDs := make([]interface{}, len(filter.AreaIDs))
+		for i, v := range filter.AreaIDs {
+			areaIDs[i] = v
+		}
+		queryMods = append(queryMods, qm.WhereIn("a.area_id IN ?", areaIDs...))
 	}
 
-	// radius filter
 	if filter.RadiusKM != nil && filter.Lat != nil && filter.Lon != nil {
-		distanceQuery := `
-			6371 * acos(
-				cos(radians(?)) * cos(radians(a.latitude)) * cos(radians(a.longitude) - radians(?)) 
-				+ sin(radians(?)) * sin(radians(a.latitude))
-			) <= ?
-		`
-		db = db.Where(distanceQuery, *filter.Lat, *filter.Lon, *filter.Lat, *filter.RadiusKM)
-		db = db.Select(`listings.*, 
-			6371 * acos(
-				cos(radians(?)) * cos(radians(a.latitude)) * cos(radians(a.longitude) - radians(?)) 
-				+ sin(radians(?)) * sin(radians(a.latitude))
-			) as distance_km
-		`, *filter.Lat, *filter.Lon, *filter.Lat).
-			Order("distance_km ASC")
+		distanceQuery := `6371 * acos(cos(radians(?)) * cos(radians(a.latitude)) * cos(radians(a.longitude) - radians(?)) + sin(radians(?)) * sin(radians(a.latitude)))`
+		queryMods = append(queryMods, qm.Where(distanceQuery+" <= ?", *filter.Lat, *filter.Lon, *filter.Lat, *filter.RadiusKM))
+
+		distanceExpression := fmt.Sprintf("6371 * acos(cos(radians(%f)) * cos(radians(a.latitude)) * cos(radians(a.longitude) - radians(%f)) + sin(radians(%f)) * sin(radians(a.latitude)))", *filter.Lat, *filter.Lon, *filter.Lat)
+		queryMods = append(queryMods, qm.Select(models.ListingColumns.ID, models.ListingColumns.OwnerID, models.ListingColumns.Title, models.ListingColumns.Description, models.ListingColumns.PropertyType, models.ListingColumns.IsShared, models.ListingColumns.Price, models.ListingColumns.AreaM2, models.ListingColumns.AddressID, models.ListingColumns.ContactPhone, models.ListingColumns.ContactEmail, models.ListingColumns.ContactName, models.ListingColumns.NumBedrooms, models.ListingColumns.NumBathrooms, models.ListingColumns.NumFloors, models.ListingColumns.HasBalcony, models.ListingColumns.HasParking, models.ListingColumns.Amenities, models.ListingColumns.PetAllowed, models.ListingColumns.AllowedPetTypes, models.ListingColumns.ListingType, models.ListingColumns.DepositAmount, models.ListingColumns.Status, models.ListingColumns.IsFeatured, models.ListingColumns.ViewCount, models.ListingColumns.CreatedAt, models.ListingColumns.UpdatedAt, models.ListingColumns.PublishedAt, models.ListingColumns.ExpiresAt, models.ListingColumns.SearchVector, distanceExpression+" as distance_km"))
+		queryMods = append(queryMods, qm.OrderBy("distance_km ASC"))
 	} else {
-		db = db.Select("listings.*").Order("created_at DESC")
+		queryMods = append(queryMods, qm.OrderBy("created_at DESC"))
 	}
 
-	// property filters
 	if len(filter.PropertyType) > 0 {
-		db = db.Where("property_type = ANY(?)", pq.Array(filter.PropertyType))
+		queryMods = append(queryMods, qm.Where("property_type = ANY(?)", pq.Array(filter.PropertyType)))
 	}
 	if filter.IsShared != nil {
-		db = db.Where("is_shared = ?", *filter.IsShared)
+		queryMods = append(queryMods, models.ListingWhere.IsShared.EQ(null.BoolFromPtr(filter.IsShared)))
 	}
 	if filter.MinPrice != nil {
-		db = db.Where("price >= ?", *filter.MinPrice)
+		minPriceDecimal := new(decimal.Big)
+		minPriceDecimal.SetFloat64(*filter.MinPrice)
+		queryMods = append(queryMods, models.ListingWhere.Price.GTE(types.NewDecimal(minPriceDecimal)))
 	}
 	if filter.MaxPrice != nil {
-		db = db.Where("price <= ?", *filter.MaxPrice)
+		maxPriceDecimal := new(decimal.Big)
+		maxPriceDecimal.SetFloat64(*filter.MaxPrice)
+		queryMods = append(queryMods, models.ListingWhere.Price.LTE(types.NewDecimal(maxPriceDecimal)))
 	}
 	if filter.MinArea != nil {
-		db = db.Where("area_m2 >= ?", *filter.MinArea)
+		minAreaDecimal := new(decimal.Big)
+		minAreaDecimal.SetFloat64(*filter.MinArea)
+		queryMods = append(queryMods, models.ListingWhere.AreaM2.GTE(types.NewNullDecimal(minAreaDecimal)))
 	}
 	if filter.MaxArea != nil {
-		db = db.Where("area_m2 <= ?", *filter.MaxArea)
+		maxAreaDecimal := new(decimal.Big)
+		maxAreaDecimal.SetFloat64(*filter.MaxArea)
+		queryMods = append(queryMods, models.ListingWhere.AreaM2.LTE(types.NewNullDecimal(maxAreaDecimal)))
 	}
 	if filter.NumBedrooms != nil {
-		db = db.Where("num_bedrooms = ?", *filter.NumBedrooms)
+		queryMods = append(queryMods, models.ListingWhere.NumBedrooms.EQ(null.IntFromPtr(filter.NumBedrooms)))
 	}
 	if filter.NumBathrooms != nil {
-		db = db.Where("num_bathrooms = ?", *filter.NumBathrooms)
+		queryMods = append(queryMods, models.ListingWhere.NumBathrooms.EQ(null.IntFromPtr(filter.NumBathrooms)))
 	}
 	if filter.NumFloors != nil {
-		db = db.Where("num_floors = ?", *filter.NumFloors)
+		queryMods = append(queryMods, models.ListingWhere.NumFloors.EQ(null.IntFromPtr(filter.NumFloors)))
 	}
 	if filter.HasBalcony != nil {
-		db = db.Where("has_balcony = ?", *filter.HasBalcony)
+		queryMods = append(queryMods, models.ListingWhere.HasBalcony.EQ(null.BoolFromPtr(filter.HasBalcony)))
 	}
 	if filter.HasParking != nil {
-		db = db.Where("has_parking = ?", *filter.HasParking)
+		queryMods = append(queryMods, models.ListingWhere.HasParking.EQ(null.BoolFromPtr(filter.HasParking)))
 	}
 	if len(filter.Amenities) > 0 {
-		db = db.Where("amenities @> ?", utils.ConvertStringArrayToJSON(filter.Amenities))
+		amenitiesJSON, _ := json.Marshal(filter.Amenities)
+		queryMods = append(queryMods, qm.Where("amenities @> ?", string(amenitiesJSON)))
 	}
 	if len(filter.AllowedPetTypes) > 0 {
-		db = db.Where("allowed_pet_types @> ?", utils.ConvertStringArrayToJSON(filter.AllowedPetTypes))
+		petTypesJSON, _ := json.Marshal(filter.AllowedPetTypes)
+		queryMods = append(queryMods, qm.Where("allowed_pet_types @> ?", string(petTypesJSON)))
 	}
 	if filter.PetAllowed != nil {
-		db = db.Where("pet_allowed = ?", *filter.PetAllowed)
+		queryMods = append(queryMods, models.ListingWhere.PetAllowed.EQ(null.BoolFromPtr(filter.PetAllowed)))
 	}
 	if filter.ListingType != "" {
-		db = db.Where("listing_type = ?", filter.ListingType)
+		queryMods = append(queryMods, models.ListingWhere.ListingType.EQ(null.StringFrom(string(filter.ListingType))))
+	}
+	total, err := models.Listings(queryMods...).Count(ctx, r.db)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to count listings: %w", err)
 	}
 
-	countDB := db.Session(&gorm.Session{})
-	countDB.Select("*").Count(&total)
-
-	// pagination
 	if filter.Page == 0 {
 		filter.Page = 1
 	}
@@ -202,13 +230,13 @@ func (r *listingRepo) SearchAndFilter(filter *dto.SearchFilterListing) (listings
 		filter.Limit = 20
 	}
 	offset := (filter.Page - 1) * filter.Limit
+	queryMods = append(queryMods, qm.Limit(filter.Limit), qm.Offset(offset))
 
-	// main query
-	if err = db.Offset(offset).Limit(filter.Limit).Find(&listings).Error; err != nil {
-		return nil, nil, err
+	listings, err = models.Listings(queryMods...).All(ctx, r.db)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to search listings: %w", err)
 	}
 
-	// pagination response
 	pagination = &dto.Pagination{
 		Page:       filter.Page,
 		Limit:      filter.Limit,
@@ -218,4 +246,3 @@ func (r *listingRepo) SearchAndFilter(filter *dto.SearchFilterListing) (listings
 
 	return
 }
-

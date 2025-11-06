@@ -1,19 +1,16 @@
 package infra
 
 import (
+	"database/sql"
 	"fmt"
 	"homemie/config"
-	"homemie/db/models"
 	"log"
-	"os"
 	"time"
 
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	_ "github.com/lib/pq" // PostgreSQL driver
 )
 
-func InitDB(cfg config.Config) *gorm.DB {
+func InitDB(cfg *config.Config) *sql.DB {
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
 		cfg.DB.Host,
@@ -23,43 +20,25 @@ func InitDB(cfg config.Config) *gorm.DB {
 		cfg.DB.Port,
 	)
 
-	// cấu hình logger cho GORM
-	newLogger := logger.New(
-		log.New(os.Stdout, "\r\n", log.LstdFlags),
-		logger.Config{
-			SlowThreshold: time.Second,
-			LogLevel:      logger.Info,
-			Colorful:      true,
-		},
-	)
-
-	var db *gorm.DB
+	var db *sql.DB
 	var err error
 
 	for i := 0; i < 5; i++ {
-		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
-			Logger: newLogger,
-		})
+		db, err = sql.Open("postgres", dsn)
 		if err == nil {
-			break
+			if err = db.Ping(); err == nil {
+				break // Success
+			}
 		}
 		log.Printf("Failed to connect DB (attempt %d/5): %v", i+1, err)
 		time.Sleep(10 * time.Second)
 	}
 
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatalf("Failed to connect to database after multiple retries: %v", err)
 	}
 
 	log.Println("Database connected successfully")
 
-	err = db.AutoMigrate(
-		&models.EmailTemplate{},
-	)
-	if err != nil {
-		log.Fatalf("AutoMigrate failed: %v", err)
-	}
-
-	log.Println("Database migrated successfully")
 	return db
 }

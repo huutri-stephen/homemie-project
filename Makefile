@@ -1,8 +1,8 @@
 export PATH := $(PATH):$(shell go env GOPATH)/bin
 include .env
 
-MIGRATIONS_DIR = db/migrations 
-URL = postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_URL):$(DB_PORT)/$(DB_NAME)?sslmode=disable
+MIGRATIONS_DIR = db/migrations
+URL = postgres://$(HOMIE_APP_DB_USER):$(HOMIE_APP_DB_PASSWORD)@$(HOMIE_APP_DB_URL):$(HOMIE_APP_DB_PORT)/$(HOMIE_APP_DB_NAME)?sslmode=disable
 
 .PHONY: models 
 
@@ -11,18 +11,15 @@ mod: ## Tidy go.mod & go.sum
 	go mod tidy
 
 ## Migration commands
-migrate-create: ## Create a new database migration
+migrate-up:
+	goose -dir $(MIGRATIONS_DIR) postgres "$(URL)" up
+
+migrate-down:
+	goose -dir $(MIGRATIONS_DIR) postgres "$(URL)" down
+
+migrate-create:
 	@read -p "Enter migration name: " name; \
-	migrate create -ext sql -dir $(MIGRATIONS_DIR) -seq $$name
-
-migrate-up: ## Apply all up migrations
-	migrate -path $(MIGRATIONS_DIR) -database "$(URL)" up
-
-migrate-down: ## Rollback last migration
-	migrate -path $(MIGRATIONS_DIR) -database "$(URL)" down
-
-migrate-version: ## Show current migration version
-	migrate -path $(MIGRATIONS_DIR) -database "$(URL)" version
+	goose -dir $(MIGRATIONS_DIR) create $$name sql;
 
 ## Docker commands
 docker-run: ## Build & start containers

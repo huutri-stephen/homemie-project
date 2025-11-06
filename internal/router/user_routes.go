@@ -1,23 +1,22 @@
 package router
 
 import (
+	"database/sql"
 	"homemie/internal/handler"
 	"homemie/internal/repo"
 	"homemie/internal/service"
 	"homemie/pkg/utils"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
 )
 
-func InitUserRoutes(rg *gin.RouterGroup, db *gorm.DB, logger *zap.Logger) {
-	repo := repo.NewUserRepository(db, logger.Named("user_repo"))
-	svc := service.NewUserService(repo, logger.Named("user_service"))
-	h := handler.NewUserHandler(svc, logger.Named("user_handler"))
+func InitUserRoutes(rg *gin.RouterGroup, db *sql.DB) {
+	repo := repo.NewUserRepository(db)
+	svc := service.NewUserService(repo)
+	h := handler.NewUserHandler(svc)
 
 	user := rg.Group("/user")
-	user.Use(utils.RequireAuth(logger))
+	user.Use(utils.RequireAuth())
 
 	user.GET("/profile", h.GetUserProfile)
 	user.PUT("/profile", h.UpdateUserProfile)

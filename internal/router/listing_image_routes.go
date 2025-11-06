@@ -1,19 +1,18 @@
 package router
 
 import (
+	"database/sql"
 	"homemie/internal/handler"
 	"homemie/internal/repo"
 	"homemie/internal/service"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
-	"gorm.io/gorm"
 )
 
-func InitListingImageRoutes(rg *gin.RouterGroup, db *gorm.DB, logger *zap.Logger) {
-	repo := repo.NewListingImageRepository(db, logger.Named("listing_image_repo"))
-	svc := service.NewListingImageService(repo, logger.Named("listing_image_service"))
-	h := handler.NewListingImageHandler(svc, logger.Named("listing_image_handler"))
+func InitListingImageRoutes(rg *gin.RouterGroup, db *sql.DB) {
+	repo := repo.NewListingImageRepository(db)
+	svc := service.NewListingImageService(repo)
+	h := handler.NewListingImageHandler(svc)
 
 	listingImages := rg.Group("/listing-images")
 	{
