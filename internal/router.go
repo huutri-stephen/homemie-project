@@ -26,6 +26,7 @@ func NewRouter(db *gorm.DB, cfg config.Config, logger *zap.Logger) *gin.Engine {
 
 	router.InitListingRoutes(protected, db, logger)
 	router.InitBookingRoutes(protected, db, logger)
+	router.InitFavoriteRoutes(protected, db, logger)
 
 	return r
 }

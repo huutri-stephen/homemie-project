@@ -19,6 +19,11 @@ func InitListingRoutes(rg *gin.RouterGroup, db *gorm.DB, logger *zap.Logger) {
 
 	listings := rg.Group("/listings")
 	{
+		
+		//public
+		listings.GET("", h.SearchAndFilter)
+		listings.GET("/:id", h.GetByID)
+		//request auth
 		listings.POST("", h.Create)
 		listings.PUT("/:id", h.Update)
 		listings.DELETE("/:id", h.Delete)

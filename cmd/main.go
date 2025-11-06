@@ -1,7 +1,7 @@
 package main
 
 import (
-	"homemie/config"
+	"github.com/Stephen-R-L/homemie-project/config"
 	"homemie/internal"
 	"homemie/internal/infra"
 	"homemie/pkg/logger"

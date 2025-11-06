@@ -4,6 +4,8 @@ import (
 	"time"
 )
 
+//dto
+
 type Listing struct {
 	ID              int64 `gorm:"primaryKey"`
 	OwnerID         int64 `gorm:"not null"`
